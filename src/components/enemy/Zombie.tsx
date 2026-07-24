@@ -36,6 +36,7 @@ export function Zombie({
   const entityRef = useRef<EnemyEntity>({
     id,
     type,
+    nameLabel: _nameLabel,
     position: posRef.current,
     rotation: rotRef.current,
     state: isCuredInStore ? 'cured' : 'idle',
@@ -148,6 +149,7 @@ export function Zombie({
     <group ref={groupRef} position={initialPosition}>
       <Character3D
         type={type}
+        nameLabel={_nameLabel}
         state={activeState}
         isZombie={true}
         isInjecting={isInjectingState}

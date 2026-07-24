@@ -1,10 +1,12 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { CelMaterial } from '../../shaders/CelMaterial';
 
 export interface Character3DProps {
   type?: 'STUDENT' | 'LECTURER' | 'BOSS_WILLY' | 'NUSA' | 'BINA';
+  nameLabel?: string;
   state?: 'idle' | 'wander' | 'alert' | 'chase' | 'attack' | 'search' | 'stunned' | 'cured';
   isZombie?: boolean;
   isInjecting?: boolean;
@@ -16,6 +18,7 @@ export interface Character3DProps {
 
 export function Character3D({
   type = 'STUDENT',
+  nameLabel,
   state = 'idle',
   isZombie = true,
   isInjecting = false,
@@ -106,7 +109,6 @@ export function Character3D({
     hairColor = '#fbbf24';
   }
 
-  const badgeColor = isCured ? '#22c55e' : isInjecting ? '#eab308' : '#ef4444';
   const progressRatio = Math.min(1.0, Math.max(0, injectionProgress / 100));
 
   return (
@@ -231,11 +233,33 @@ export function Character3D({
         </group>
       )}
 
-      {/* ── HIGH-VISIBILITY FLOATING STATUS BADGE OVERHEAD ── */}
-      <mesh position={[0, isInjecting ? 2.55 : 2.0, 0]}>
-        <boxGeometry args={[1.3, 0.24, 0.02]} />
-        <meshBasicMaterial color={badgeColor} />
-      </mesh>
+      {/* ── HIGH-VISIBILITY FLOATING STATUS BADGE & OVERHEAD NAME LABEL ── */}
+      {isZombie && (
+        <group position={[0, isInjecting ? 2.6 : 2.1, 0]}>
+          <mesh position={[0, 0, -0.01]}>
+            <planeGeometry args={[1.8, 0.45]} />
+            <meshBasicMaterial color="#020617" transparent opacity={0.82} />
+          </mesh>
+          <Text
+            position={[0, 0.08, 0.01]}
+            fontSize={0.16}
+            color={isCured ? '#4ade80' : isInjecting ? '#facc15' : '#f87171'}
+            anchorX="center"
+            anchorY="middle"
+          >
+            {nameLabel || (type === 'BOSS_WILLY' ? 'Boss Willy' : type === 'LECTURER' ? 'Dosen Zombie' : 'Mahasiswa Zombie')}
+          </Text>
+          <Text
+            position={[0, -0.1, 0.01]}
+            fontSize={0.12}
+            color={isCured ? '#38bdf8' : isInjecting ? '#eab308' : '#ef4444'}
+            anchorX="center"
+            anchorY="middle"
+          >
+            {isCured ? '✓ STATUS: SEMBUH' : isInjecting ? `⚡ SUNTIK ${Math.round(injectionProgress)}%` : '⚠️ STATUS: ZOMBIE'}
+          </Text>
+        </group>
+      )}
     </group>
   );
 }

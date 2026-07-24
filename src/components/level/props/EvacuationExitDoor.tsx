@@ -65,6 +65,20 @@ export function EvacuationExitDoor({ position, rotationY = Math.PI }: Evacuation
         <meshStandardMaterial color="#1e293b" metalness={0.8} />
       </mesh>
 
+      {/* Floor hazard stripes (elevated at Y=0.005 to prevent Z-fighting) */}
+      <group position={[0, 0.005, -1.2]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[3.2, 0.8]} />
+          <meshBasicMaterial color="#eab308" polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+        </mesh>
+        {[-1.2, -0.6, 0, 0.6, 1.2].map((x, i) => (
+          <mesh key={i} position={[x, 0.001, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4]}>
+            <planeGeometry args={[0.15, 0.9]} />
+            <meshBasicMaterial color="#0f172a" polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} />
+          </mesh>
+        ))}
+      </group>
+
       {/* ── Glass Exit Doors ── */}
       <group position={[-0.6, 1.35, 0]}>
         <mesh onClick={toggleDoor}>
@@ -93,14 +107,7 @@ export function EvacuationExitDoor({ position, rotationY = Math.PI }: Evacuation
           <cylinderGeometry args={[0.1, 0.12, 0.25, 12]} />
           <meshBasicMaterial color="#4ade80" />
         </mesh>
-        <pointLight position={[0, 0, 0.2]} color="#22c55e" intensity={2.0} distance={6} />
       </group>
-
-      {/* ── FLOOR HAZARD STRIPES ── */}
-      <mesh position={[0, 0.01, -0.8]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[2.6, 1.2]} />
-        <meshStandardMaterial color="#15803d" roughness={0.8} />
-      </mesh>
     </group>
   );
 }

@@ -82,8 +82,9 @@ export function InjectionSystem() {
       else if (enemy.id.includes('gatot')) state.setCured('gatot');
       else state.incrementStudentsCured();
 
-      state.setDetectionMessage(`[✓ SUKSES] ${enemy.id.toUpperCase()} telah disembuhkan dengan Antidot!`);
-      setTimeout(() => state.setDetectionMessage(null), 3000);
+      const displayName = enemy.nameLabel || (enemy.type === 'BOSS_WILLY' ? 'Boss Willy' : enemy.type === 'LECTURER' ? 'Dosen' : 'Mahasiswa Zombie');
+      state.setDetectionMessage(`[✓ SUKSES] ${displayName} (STATUS: SEMBUH / CURED)!`);
+      setTimeout(() => state.setDetectionMessage(null), 3500);
     }
   });
 

@@ -93,17 +93,18 @@ export function PlayerController() {
     if (state.phase !== 'playing') return;
 
     if (isPresenting && session) {
-      // ── WebXR Standard VR Controller Input Handler (MetaQuest / OpenXR) ──
+      // ── WebXR Standard VR Controller Input Handler (MetaQuest / OpenXR Touch Controllers) ──
       for (const source of session.inputSources) {
         if (!source.gamepad) continue;
         const gp = source.gamepad;
 
+        // Extract thumbstick values: axes[0]/[1] are standard OpenXR Touch Thumbsticks
+        const rawAxisX = gp.axes[0] ?? (Math.abs(gp.axes[2] ?? 0) > 0.05 ? gp.axes[2] : 0);
+        const rawAxisZ = gp.axes[1] ?? (Math.abs(gp.axes[3] ?? 0) > 0.05 ? gp.axes[3] : 0);
+
         if (source.handedness === 'left') {
           // Left Thumbstick Smooth Locomotion
-          const stickX = gp.axes[2] ?? gp.axes[0] ?? 0;
-          const stickZ = gp.axes[3] ?? gp.axes[1] ?? 0;
-
-          if (Math.abs(stickX) > 0.15 || Math.abs(stickZ) > 0.15) {
+          if (Math.abs(rawAxisX) > 0.12 || Math.abs(rawAxisZ) > 0.12) {
             camera.getWorldDirection(forwardVec.current);
             forwardVec.current.y = 0;
             if (forwardVec.current.lengthSq() > 0.0001) forwardVec.current.normalize();
@@ -111,8 +112,8 @@ export function PlayerController() {
             rightVec.current.crossVectors(forwardVec.current, upVec.current).normalize();
 
             moveDirVec.current.set(0, 0, 0);
-            moveDirVec.current.addScaledVector(forwardVec.current, -stickZ);
-            moveDirVec.current.addScaledVector(rightVec.current, stickX);
+            moveDirVec.current.addScaledVector(forwardVec.current, -rawAxisZ);
+            moveDirVec.current.addScaledVector(rightVec.current, rawAxisX);
 
             if (moveDirVec.current.lengthSq() > 0.0001) {
               moveDirVec.current.normalize();
@@ -125,26 +126,26 @@ export function PlayerController() {
           }
         } else if (source.handedness === 'right') {
           // Right Thumbstick Snap Turn (45 degrees)
-          const snapX = gp.axes[2] ?? gp.axes[0] ?? 0;
-          if (Math.abs(snapX) > 0.6) {
+          if (Math.abs(rawAxisX) > 0.5) {
             if (!vrSnapRef.current) {
               vrSnapRef.current = true;
-              const angle = snapX > 0 ? -Math.PI / 4 : Math.PI / 4;
+              const angle = rawAxisX > 0 ? -Math.PI / 4 : Math.PI / 4;
               camera.rotation.y += angle;
             }
           } else {
             vrSnapRef.current = false;
           }
+        }
 
-          // Right Trigger (buttons[0]): Global Interaction (Doors / Syringe / Talk)
-          if (gp.buttons[0] && gp.buttons[0].pressed) {
-            if (!vrTriggerPressedRef.current) {
-              vrTriggerPressedRef.current = true;
-              triggerGlobalInteraction();
-            }
-          } else {
-            vrTriggerPressedRef.current = false;
+        // Trigger (buttons[0]), Grip (buttons[1]), or Primary Button (buttons[4]/[5]) on EITHER controller
+        const isBtnPressed = gp.buttons.some((b) => b && (b.pressed || b.value > 0.5));
+        if (isBtnPressed) {
+          if (!vrTriggerPressedRef.current) {
+            vrTriggerPressedRef.current = true;
+            triggerGlobalInteraction();
           }
+        } else {
+          vrTriggerPressedRef.current = false;
         }
       }
 

@@ -27,25 +27,25 @@ export function RoomLayout({
   const wallT = 0.22;
   const dado = height * 0.32; // dado rail height (~1.1m in 3.4m room)
 
-
   return (
     <group>
-      {/* ── Floor — two-tone tile with grout lines ── */}
-      <mesh position={[0, -0.04, 0]} receiveShadow>
-        <boxGeometry args={[width, 0.08, depth]} />
+      {/* ── Floor — main tile base ── */}
+      <mesh position={[0, -0.05, 0]} receiveShadow>
+        <boxGeometry args={[width, 0.1, depth]} />
         <meshStandardMaterial color={floorColor} roughness={0.4} metalness={0.05} />
       </mesh>
-      {/* Grout grid overlay (thin dark strips) */}
+
+      {/* Grout grid overlay (thin dark strips, elevated at Y=0.002 to eliminate Z-fighting flicker) */}
       {Array.from({ length: Math.floor(width / 1.5) }).map((_, i) => (
-        <mesh key={`gx${i}`} position={[-halfW + 1.5 + i * 1.5, -0.001, 0]}>
+        <mesh key={`gx${i}`} position={[-halfW + 1.5 + i * 1.5, 0.002, 0]}>
           <boxGeometry args={[0.03, 0.001, depth]} />
-          <meshBasicMaterial color="#94a3b8" />
+          <meshBasicMaterial color="#94a3b8" polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
         </mesh>
       ))}
       {Array.from({ length: Math.floor(depth / 1.5) }).map((_, i) => (
-        <mesh key={`gz${i}`} position={[0, -0.001, -halfD + 1.5 + i * 1.5]}>
+        <mesh key={`gz${i}`} position={[0, 0.002, -halfD + 1.5 + i * 1.5]}>
           <boxGeometry args={[width, 0.001, 0.03]} />
-          <meshBasicMaterial color="#94a3b8" />
+          <meshBasicMaterial color="#94a3b8" polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
         </mesh>
       ))}
 

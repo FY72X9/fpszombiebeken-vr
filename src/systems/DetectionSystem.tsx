@@ -6,6 +6,7 @@ import { DETECTION_CONFIG } from '../constants/gameConfig';
 export interface EnemyEntity {
   id: string;
   type: 'STUDENT' | 'LECTURER' | 'BOSS_WILLY';
+  nameLabel?: string;
   position: THREE.Vector3;
   rotation: THREE.Euler;
   state: 'idle' | 'wander' | 'alert' | 'chase' | 'attack' | 'search' | 'stunned' | 'cured';
