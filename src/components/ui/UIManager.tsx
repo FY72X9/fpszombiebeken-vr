@@ -117,8 +117,20 @@ export function UIManager() {
         <div style={glowBgStyle} />
 
         <div style={introPanelStyle}>
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          {/* Header with BINUS Official Logos */}
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+              <img
+                src="/assets/logo/BU-SIS-YellowDot.png"
+                alt="BINUS SIS Logo"
+                style={{ height: '48px', objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))' }}
+              />
+              <img
+                src="/assets/logo/BU-School-of-Information-System--Satuan.png"
+                alt="School of Information Systems"
+                style={{ height: '48px', objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))' }}
+              />
+            </div>
             <div style={{ fontSize: '0.85rem', letterSpacing: '4px', color: '#f87171', marginBottom: '6px', textTransform: 'uppercase' }}>
               BINUS University Bekasi • WebXR Survival
             </div>

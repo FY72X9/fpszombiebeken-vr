@@ -1,5 +1,6 @@
 
 import { Door } from '../props/Door';
+import { BinusLogoSign } from '../props/BinusLogoSign';
 import { Desk, Chair, Sofa, ACUnit } from '../props/Furniture';
 import { Zombie } from '../../enemy/Zombie';
 import { RoomLayout } from './RoomLayout';
@@ -22,6 +23,8 @@ export function RuangDirektur() {
           <boxGeometry args={[8.0, 3.4, 0.1]} />
           <meshStandardMaterial color="#451a03" roughness={0.4} metalness={0.1} />
         </mesh>
+        {/* Official BINUS School of Information System Satuan Logo */}
+        <BinusLogoSign position={[0, 1.1, 0.08]} scale={[3.2, 0.85, 1]} logoPath="/assets/logo/BU-School-of-Information-System--Satuan.png" />
         {/* Vertical panel dividers */}
         {[-3, -1, 1, 3].map((x, i) => (
           <mesh key={i} position={[x, 0, 0.06]}>

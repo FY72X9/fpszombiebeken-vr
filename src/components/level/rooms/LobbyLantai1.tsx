@@ -1,6 +1,7 @@
 
 import { Door } from '../props/Door';
 import { EvacuationExitDoor } from '../props/EvacuationExitDoor';
+import { BinusLogoSign } from '../props/BinusLogoSign';
 import { Desk, Chair, Sofa, ACUnit } from '../props/Furniture';
 import { BuildingFacade } from '../BuildingFacade';
 import { RoomLayout } from './RoomLayout';
@@ -19,8 +20,6 @@ export function LobbyLantai1() {
         accentColor="#1e3a5f"
         lightColor="#fffde7"
       >
-import { BinusLogoSign } from '../props/BinusLogoSign';
-
         {/* ── BINUS Bekasi Signage Banner (North Wall) ── */}
         <group position={[0, 2.6, -7.8]}>
           {/* Dark backing panel */}
@@ -33,8 +32,17 @@ import { BinusLogoSign } from '../props/BinusLogoSign';
             <boxGeometry args={[7, 0.06, 0.02]} />
             <meshBasicMaterial color="#ef4444" />
           </mesh>
-          {/* Official BINUS University Logo Texture */}
-          <BinusLogoSign position={[0, 0, 0.05]} scale={[4.2, 0.95, 1]} />
+          {/* Official BINUS SIS YellowDot Logo */}
+          <BinusLogoSign position={[0, 0, 0.05]} scale={[4.2, 0.95, 1]} logoPath="/assets/logo/BU-SIS-YellowDot.png" />
+        </group>
+
+        {/* ── BINUS School of Information System Satuan Logo (West Wall) ── */}
+        <group position={[-7.75, 2.4, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <mesh>
+            <boxGeometry args={[3.2, 1.1, 0.04]} />
+            <meshStandardMaterial color="#ffffff" />
+          </mesh>
+          <BinusLogoSign position={[0, 0, 0.03]} scale={[2.8, 0.9, 1]} logoPath="/assets/logo/BU-School-of-Information-System--Satuan.png" />
         </group>
 
         {/* ── Info Desk ── */}
