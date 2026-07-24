@@ -6,7 +6,7 @@ import { PLAYER_CONFIG } from '../constants/gameConfig';
 
 export interface InjectionProgress {
   targetId: string;
-  progressMs: number; // 0 to 2500
+  progressMs: number;
 }
 
 export let currentInjectionProgress: InjectionProgress | null = null;
@@ -35,35 +35,39 @@ export function InjectionSystem() {
       return;
     }
 
-    // Advance timer
     currentInjectionProgress.progressMs += delta * 1000;
     const ratio = Math.min(1.0, currentInjectionProgress.progressMs / PLAYER_CONFIG.injectionTime);
     setProgressRatio(ratio);
 
     if (currentInjectionProgress.progressMs >= PLAYER_CONFIG.injectionTime) {
-      // Complete injection!
       enemy.state = 'cured';
       currentInjectionProgress = null;
 
-      // Consume antidote syringe
       const state = useGameStore.getState();
       const antidoteItem = state.player.inventory.find((i) => i.type === 'antidote');
       if (antidoteItem) {
         state.removeInventoryItem(antidoteItem.id);
       }
 
-      // Record cure flags
       if (enemy.type === 'BOSS_WILLY') state.setCured('willy');
       else if (enemy.id.includes('indi')) state.setCured('indi');
       else if (enemy.id.includes('gatot')) state.setCured('gatot');
       else state.incrementStudentsCured();
 
-      state.setDetectionMessage(`${enemy.id.toUpperCase()} successfully cured with antidote!`);
+      state.setDetectionMessage(`${enemy.id.toUpperCase()} berhasil disembuhkan dengan Antidot!`);
       setTimeout(() => state.setDetectionMessage(null), 3000);
     }
   });
 
   if (!currentInjectionProgress || progressRatio <= 0) return null;
 
-  return null;
+  return (
+    <group position={[0, 2.5, 0]}>
+      {/* 3D Antidote Injection Progress Indicator */}
+      <mesh>
+        <torusGeometry args={[0.3, 0.04, 16, 32, progressRatio * Math.PI * 2]} />
+        <meshBasicMaterial color="#22c55e" />
+      </mesh>
+    </group>
+  );
 }

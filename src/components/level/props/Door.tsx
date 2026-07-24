@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameStore } from '../../../stores/GameStore';
 import { emitNoise } from '../../../systems/NoiseSystem';
 import { NOISE_CONFIG } from '../../../constants/gameConfig';
 import { RoomId } from '../../../types/game';
+import { registerInteractiveDoor, unregisterInteractiveDoor } from '../../interaction/InteractionSystem';
 
 interface DoorProps {
   position: [number, number, number];
@@ -11,15 +12,29 @@ interface DoorProps {
   label?: string;
 }
 
-export function Door({ position, rotationY = 0, targetRoom, label: _label = 'Pintu' }: DoorProps) {
+export function Door({ position, rotationY = 0, targetRoom, label = 'Pintu' }: DoorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const setRoom = useGameStore((s) => s.setRoom);
-  const playerPos = useGameStore((s) => s.player.position);
+
+  useEffect(() => {
+    const doorId = `door_${position.join('_')}`;
+    registerInteractiveDoor({
+      id: doorId,
+      position,
+      targetRoom,
+      label,
+      action: () => setRoom(targetRoom)
+    });
+
+    return () => {
+      unregisterInteractiveDoor(doorId);
+    };
+  }, [position, targetRoom, label, setRoom]);
 
   const toggleDoor = (e: any) => {
     e.stopPropagation();
-    const nextState = !isOpen;
-    setIsOpen(nextState);
+    setIsOpen(!isOpen);
+    setRoom(targetRoom);
 
     emitNoise({
       position,
@@ -27,12 +42,6 @@ export function Door({ position, rotationY = 0, targetRoom, label: _label = 'Pin
       intensity: NOISE_CONFIG.DOOR_SLOW.intensity,
       type: 'door'
     });
-
-    // Transition room if player is close
-    const dist = Math.hypot(playerPos[0] - position[0], playerPos[2] - position[2]);
-    if (dist < 3) {
-      setRoom(targetRoom);
-    }
   };
 
   const doorAngle = isOpen ? Math.PI / 2 : 0;

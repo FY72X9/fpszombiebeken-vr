@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { useGameStore } from '../../stores/GameStore';
 import { ROOM_LABELS } from '../../constants/roomGraph';
+import { MobileControls } from './MobileControls';
+import { ModeSelector } from './ModeSelector';
+import { DialogueManager } from './DialogueManager';
 
 export function UIManager() {
+  const [currentMode, setCurrentMode] = useState<'desktop' | 'mobile' | 'vr'>('desktop');
   const phase = useGameStore((s) => s.phase);
   const setPhase = useGameStore((s) => s.setPhase);
   const reset = useGameStore((s) => s.reset);
@@ -22,7 +27,7 @@ export function UIManager() {
           <button
             onClick={() => {
               reset();
-              setPhase('playing');
+              setPhase('intro');
             }}
             style={btnStyle}
           >
@@ -80,63 +85,74 @@ export function UIManager() {
   const threatText = ['Aman (Calm)', 'Waspada (Alert)', 'Pengejaran (Chase)', 'Diserang (Attack)'];
 
   return (
-    <div style={hudContainerStyle}>
-      {/* Top Left: Room & Threat */}
-      <div style={panelStyle}>
-        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#f8fafc' }}>{roomTitle}</div>
-        <div style={{ color: threatColors[threatLevel], fontWeight: '600', marginTop: '4px' }}>
-          Status: {threatText[threatLevel]}
-        </div>
-      </div>
+    <>
+      {/* Top Right Mode Switcher Bar */}
+      <ModeSelector currentMode={currentMode} onSelectMode={setCurrentMode} />
 
-      {/* Top Right: Objectives & Cure status */}
-      <div style={panelStyle}>
-        <div style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Misi: Selamatkan Nusa dari Kelas 2A & Cure Dosen</div>
-        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-          Cured: Willy [{cure.willyCured ? '✓' : '✗'}] | Indi [{cure.indiCured ? '✓' : '✗'}] | Gatot [{cure.gatotCured ? '✓' : '✗'}]
-        </div>
-      </div>
+      {/* Storyline & Dialogue Manager */}
+      <DialogueManager />
 
-      {/* Subtitle / Detection Notification Toast */}
-      {detectionMsg && (
-        <div style={toastStyle}>
-          {detectionMsg}
-        </div>
-      )}
-
-      {/* Bottom HUD: Health & Stamina */}
-      <div style={bottomHudStyle}>
-        <div style={{ flex: 1 }}>
-          <div style={barLabelStyle}>HP: {Math.round(player.health)} / {player.maxHealth}</div>
-          <div style={barBgStyle}>
-            <div style={{ ...barFillStyle, width: `${(player.health / player.maxHealth) * 100}%`, backgroundColor: '#ef4444' }} />
+      <div style={hudContainerStyle}>
+        {/* Top Left: Room & Threat */}
+        <div style={panelStyle}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#f8fafc' }}>{roomTitle}</div>
+          <div style={{ color: threatColors[threatLevel], fontWeight: '600', marginTop: '2px', fontSize: '0.85rem' }}>
+            Status: {threatText[threatLevel]}
           </div>
         </div>
 
-        <div style={{ flex: 1, marginLeft: '16px' }}>
-          <div style={barLabelStyle}>STAMINA: {Math.round(player.stamina)} / {player.maxStamina}</div>
-          <div style={barBgStyle}>
-            <div style={{ ...barFillStyle, width: `${(player.stamina / player.maxStamina) * 100}%`, backgroundColor: '#3b82f6' }} />
+        {/* Top Center: Objectives & Cure status */}
+        <div style={panelStyle}>
+          <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Misi: Selamatkan Nusa dari Kelas 2A & Cure Dosen</div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+            Cured: Willy [{cure.willyCured ? '✓' : '✗'}] | Indi [{cure.indiCured ? '✓' : '✗'}] | Gatot [{cure.gatotCured ? '✓' : '✗'}]
           </div>
+        </div>
+
+        {/* Subtitle / Toast Notification */}
+        {detectionMsg && (
+          <div style={toastStyle}>
+            {detectionMsg}
+          </div>
+        )}
+
+        {/* Bottom Left HUD: Health & Stamina */}
+        <div style={bottomHudStyle}>
+          <div style={{ flex: 1 }}>
+            <div style={barLabelStyle}>HP: {Math.round(player.health)} / {player.maxHealth}</div>
+            <div style={barBgStyle}>
+              <div style={{ ...barFillStyle, width: `${(player.health / player.maxHealth) * 100}%`, backgroundColor: '#ef4444' }} />
+            </div>
+          </div>
+
+          <div style={{ flex: 1, marginLeft: '12px' }}>
+            <div style={barLabelStyle}>STAMINA: {Math.round(player.stamina)} / {player.maxStamina}</div>
+            <div style={barBgStyle}>
+              <div style={{ ...barFillStyle, width: `${(player.stamina / player.maxStamina) * 100}%`, backgroundColor: '#3b82f6' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Inventory Bar */}
+        <div style={inventoryBarStyle}>
+          {player.inventory.map((item, idx) => (
+            <div
+              key={item.id}
+              style={{
+                ...itemSlotStyle,
+                borderColor: player.equippedSlot === idx ? '#38bdf8' : 'rgba(255,255,255,0.2)'
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>{item.name}</div>
+              <div style={{ fontSize: '0.7rem', color: '#38bdf8' }}>x{item.count}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Inventory Bar */}
-      <div style={inventoryBarStyle}>
-        {player.inventory.map((item, idx) => (
-          <div
-            key={item.id}
-            style={{
-              ...itemSlotStyle,
-              borderColor: player.equippedSlot === idx ? '#38bdf8' : 'rgba(255,255,255,0.2)'
-            }}
-          >
-            <div style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>{item.name}</div>
-            <div style={{ fontSize: '0.75rem', color: '#38bdf8' }}>x{item.count}</div>
-          </div>
-        ))}
-      </div>
-    </div>
+      {/* On-Screen Mobile Touch Joystick (Rendered ONLY in Mobile Mode) */}
+      <MobileControls active={currentMode === 'mobile'} />
+    </>
   );
 }
 
@@ -150,17 +166,19 @@ const overlayStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 9999
+  zIndex: 9999,
+  pointerEvents: 'auto'
 };
 
 const cardStyle: React.CSSProperties = {
   background: '#1e293b',
   border: '2px solid #334155',
   borderRadius: '16px',
-  padding: '40px',
+  padding: '36px',
   textAlign: 'center',
-  maxWidth: '480px',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+  maxWidth: '440px',
+  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+  pointerEvents: 'auto'
 };
 
 const btnStyle: React.CSSProperties = {
@@ -172,7 +190,7 @@ const btnStyle: React.CSSProperties = {
   fontWeight: 'bold',
   borderRadius: '8px',
   cursor: 'pointer',
-  transition: 'transform 0.1s ease'
+  pointerEvents: 'auto'
 };
 
 const hudContainerStyle: React.CSSProperties = {
@@ -182,52 +200,55 @@ const hudContainerStyle: React.CSSProperties = {
   width: '100vw',
   height: '100vh',
   pointerEvents: 'none',
-  padding: '20px',
+  padding: '60px 16px 16px 16px',
   boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'space-between',
-  fontFamily: 'system-ui, sans-serif'
+  fontFamily: 'system-ui, sans-serif',
+  zIndex: 800
 };
 
 const panelStyle: React.CSSProperties = {
   background: 'rgba(15, 23, 42, 0.75)',
   backdropFilter: 'blur(8px)',
   border: '1px solid rgba(255, 255, 255, 0.1)',
-  borderRadius: '12px',
-  padding: '12px 18px',
+  borderRadius: '10px',
+  padding: '8px 14px',
   display: 'inline-block',
-  marginRight: '12px'
+  marginRight: '8px',
+  pointerEvents: 'none'
 };
 
 const toastStyle: React.CSSProperties = {
   position: 'absolute',
-  top: '20%',
+  top: '15%',
   left: '50%',
   transform: 'translateX(-50%)',
   background: 'rgba(220, 38, 38, 0.9)',
   color: '#ffffff',
-  padding: '12px 24px',
+  padding: '10px 20px',
   borderRadius: '30px',
   fontWeight: 'bold',
-  fontSize: '1.1rem',
-  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)'
+  fontSize: '1rem',
+  pointerEvents: 'none'
 };
 
 const bottomHudStyle: React.CSSProperties = {
   display: 'flex',
-  width: '360px',
+  width: '320px',
   background: 'rgba(15, 23, 42, 0.8)',
-  padding: '12px',
-  borderRadius: '12px',
-  border: '1px solid rgba(255, 255, 255, 0.1)'
+  padding: '10px',
+  borderRadius: '10px',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  pointerEvents: 'none'
 };
 
 const barLabelStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
+  fontSize: '0.7rem',
   fontWeight: 'bold',
   color: '#cbd5e1',
-  marginBottom: '4px'
+  marginBottom: '2px'
 };
 
 const barBgStyle: React.CSSProperties = {
@@ -245,21 +266,22 @@ const barFillStyle: React.CSSProperties = {
 
 const inventoryBarStyle: React.CSSProperties = {
   position: 'absolute',
-  bottom: '20px',
+  bottom: '16px',
   left: '50%',
   transform: 'translateX(-50%)',
   display: 'flex',
-  gap: '8px',
+  gap: '6px',
   background: 'rgba(15, 23, 42, 0.8)',
-  padding: '8px 12px',
-  borderRadius: '12px',
-  border: '1px solid rgba(255, 255, 255, 0.1)'
+  padding: '6px 10px',
+  borderRadius: '10px',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  pointerEvents: 'none'
 };
 
 const itemSlotStyle: React.CSSProperties = {
   background: 'rgba(255, 255, 255, 0.05)',
   border: '2px solid rgba(255, 255, 255, 0.2)',
-  borderRadius: '8px',
-  padding: '6px 12px',
+  borderRadius: '6px',
+  padding: '4px 8px',
   textAlign: 'center'
 };

@@ -1,23 +1,17 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import glsl from 'vite-plugin-glsl';
+import react from '@vitejs/plugin-react-swc';
 
 export default defineConfig({
   plugins: [
-    react(),
-    glsl()
+    react()
   ],
   server: {
     host: true,
-    port: 5173,
-    https: false
+    port: 5173
   },
   build: {
     target: 'esnext',
     minify: 'esbuild',
     sourcemap: false
-  },
-  optimizeDeps: {
-    include: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/xr']
   }
 });

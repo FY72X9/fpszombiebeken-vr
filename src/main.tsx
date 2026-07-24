@@ -1,30 +1,36 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Canvas } from '@react-three/fiber';
-import { XRButton } from '@react-three/xr';
+import { XR, XRButton, createXRStore } from '@react-three/xr';
 import App from './App';
-import { XRProvider, xrStore } from './components/xr/XRProvider';
+import { UIManager } from './components/ui/UIManager';
 import './styles/main.css';
+
+export const xrStore = createXRStore({
+  hand: { model: false },
+  controller: { grabPointer: false }
+});
 
 function Root() {
   return (
-    <XRProvider>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', backgroundColor: '#0f172a' }}>
       <Canvas
-        camera={{ position: [0, 1.6, 0], fov: 75, near: 0.1, far: 200 }}
-        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' }}
+        camera={{ position: [0, 1.6, 3], fov: 75, near: 0.1, far: 200 }}
+        gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         shadows={true}
         onCreated={(state) => {
           state.gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
           state.gl.outputColorSpace = 'srgb';
-          state.gl.toneMapping = 0;
           state.scene.background = null;
         }}
       >
-        <App />
+        <XR store={xrStore}>
+          <App />
+        </XR>
       </Canvas>
+      <UIManager />
       <XRButton store={xrStore} mode="immersive-vr" />
-      <div className="ui-overlay" id="ui-overlay-root" />
-    </XRProvider>
+    </div>
   );
 }
 
