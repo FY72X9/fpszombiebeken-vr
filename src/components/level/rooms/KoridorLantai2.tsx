@@ -21,6 +21,12 @@ export function Stairs() {
         </mesh>
       ))}
 
+      {/* Top Landing Floor Platform at y=3.15 connecting to North Door at z=-5.9 */}
+      <mesh position={[0, 3.15, -4.3]}>
+        <boxGeometry args={[6, 0.1, 3.2]} />
+        <meshStandardMaterial color="#475569" roughness={0.5} />
+      </mesh>
+
       {/* Handrails */}
       <mesh position={[-2, 1.8, 0]} rotation={[-0.4, 0, 0]}>
         <cylinderGeometry args={[0.04, 0.04, 8]} />
@@ -56,13 +62,13 @@ export function KoridorLantai2() {
       accentColor="#1e3a8a"
       lightColor="#e0f2fe"
     >
-      {/* Corridor Wall Lockers (West Wall) */}
+      {/* Corridor Wall Lockers (West Wall - Centered between doors at z=0) */}
       <group position={[-7.6, 1.2, 0]}>
         <mesh>
-          <boxGeometry args={[0.4, 2.2, 8]} />
+          <boxGeometry args={[0.4, 2.2, 2.0]} />
           <CelMaterial color="#1e3a8a" />
         </mesh>
-        {[-3, -1, 1, 3].map((z, i) => (
+        {[-0.6, 0.6].map((z, i) => (
           <mesh key={i} position={[0.22, 0, z]}>
             <boxGeometry args={[0.04, 0.2, 0.04]} />
             <meshStandardMaterial color="#f8fafc" metalness={0.8} />
@@ -70,13 +76,13 @@ export function KoridorLantai2() {
         ))}
       </group>
 
-      {/* Corridor Wall Lockers (East Wall) */}
+      {/* Corridor Wall Lockers (East Wall - Centered between doors at z=0) */}
       <group position={[7.6, 1.2, 0]}>
         <mesh>
-          <boxGeometry args={[0.4, 2.2, 8]} />
+          <boxGeometry args={[0.4, 2.2, 2.0]} />
           <CelMaterial color="#1e3a8a" />
         </mesh>
-        {[-3, -1, 1, 3].map((z, i) => (
+        {[-0.6, 0.6].map((z, i) => (
           <mesh key={i} position={[-0.22, 0, z]}>
             <boxGeometry args={[0.04, 0.2, 0.04]} />
             <meshStandardMaterial color="#f8fafc" metalness={0.8} />

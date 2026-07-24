@@ -17,6 +17,10 @@ export function PlayerController() {
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const headbobTimer = useRef<number>(0);
 
+  // WebXR debouncing refs for controllers
+  const vrTriggerPressedRef = useRef(false);
+  const vrSnapRef = useRef(false);
+
   const currentRoom = useGameStore((s) => s.currentRoom);
   const storePlayerPos = useGameStore((s) => s.player.position);
   const lastRoomRef = useRef<string>(currentRoom);
@@ -89,16 +93,71 @@ export function PlayerController() {
     const state = useGameStore.getState();
     if (state.phase !== 'playing') return;
 
-    if (isPresenting) {
-      const c = camera;
+    if (isPresenting && session) {
+      // ── WebXR Standard VR Controller Input Handler (MetaQuest / OpenXR) ──
+      for (const source of session.inputSources) {
+        if (!source.gamepad) continue;
+        const gp = source.gamepad;
+
+        if (source.handedness === 'left') {
+          // Left Thumbstick Smooth Locomotion
+          const stickX = gp.axes[2] ?? gp.axes[0] ?? 0;
+          const stickZ = gp.axes[3] ?? gp.axes[1] ?? 0;
+
+          if (Math.abs(stickX) > 0.15 || Math.abs(stickZ) > 0.15) {
+            camera.getWorldDirection(forwardVec.current);
+            forwardVec.current.y = 0;
+            if (forwardVec.current.lengthSq() > 0.0001) forwardVec.current.normalize();
+
+            rightVec.current.crossVectors(forwardVec.current, upVec.current).normalize();
+
+            moveDirVec.current.set(0, 0, 0);
+            moveDirVec.current.addScaledVector(forwardVec.current, -stickZ);
+            moveDirVec.current.addScaledVector(rightVec.current, stickX);
+
+            if (moveDirVec.current.lengthSq() > 0.0001) {
+              moveDirVec.current.normalize();
+              const speed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : PLAYER_CONFIG.moveSpeed.walk;
+              camera.position.x += moveDirVec.current.x * speed * delta;
+              camera.position.z += moveDirVec.current.z * speed * delta;
+
+              resolvePlayerCollisions(camera.position, 0.45, state.currentRoom);
+            }
+          }
+        } else if (source.handedness === 'right') {
+          // Right Thumbstick Snap Turn (45 degrees)
+          const snapX = gp.axes[2] ?? gp.axes[0] ?? 0;
+          if (Math.abs(snapX) > 0.6) {
+            if (!vrSnapRef.current) {
+              vrSnapRef.current = true;
+              const angle = snapX > 0 ? -Math.PI / 4 : Math.PI / 4;
+              camera.rotation.y += angle;
+            }
+          } else {
+            vrSnapRef.current = false;
+          }
+
+          // Right Trigger (buttons[0]): Global Interaction (Doors / Syringe / Talk)
+          if (gp.buttons[0] && gp.buttons[0].pressed) {
+            if (!vrTriggerPressedRef.current) {
+              vrTriggerPressedRef.current = true;
+              triggerGlobalInteraction();
+            }
+          } else {
+            vrTriggerPressedRef.current = false;
+          }
+        }
+      }
+
       useGameStore.setState((s) => ({
         player: {
           ...s.player,
-          position: [c.position.x, c.position.y, c.position.z],
-          rotation: [c.rotation.x, c.rotation.y, c.rotation.z]
+          position: [camera.position.x, camera.position.y, camera.position.z],
+          rotation: [camera.rotation.x, camera.rotation.y, camera.rotation.z]
         }
       }));
     } else {
+      // ── Non-VR Desktop & Mobile Controls ──
       const inputMove = state.input.move;
       let moveX = 0;
       let moveZ = 0;

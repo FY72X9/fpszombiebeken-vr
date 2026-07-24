@@ -19,23 +19,22 @@ export function LobbyLantai1() {
         accentColor="#1e3a5f"
         lightColor="#fffde7"
       >
+import { BinusLogoSign } from '../props/BinusLogoSign';
+
         {/* ── BINUS Bekasi Signage Banner (North Wall) ── */}
         <group position={[0, 2.6, -7.8]}>
           {/* Dark backing panel */}
           <mesh>
-            <boxGeometry args={[7, 0.8, 0.08]} />
+            <boxGeometry args={[7, 1.1, 0.08]} />
             <meshStandardMaterial color="#0f172a" />
           </mesh>
           {/* Red accent stripe */}
-          <mesh position={[0, 0.45, 0.04]}>
+          <mesh position={[0, 0.58, 0.04]}>
             <boxGeometry args={[7, 0.06, 0.02]} />
             <meshBasicMaterial color="#ef4444" />
           </mesh>
-          {/* Emissive BINUS logotype panel */}
-          <mesh position={[0, 0.02, 0.05]}>
-            <boxGeometry args={[5, 0.5, 0.02]} />
-            <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.6} />
-          </mesh>
+          {/* Official BINUS University Logo Texture */}
+          <BinusLogoSign position={[0, 0, 0.05]} scale={[4.2, 0.95, 1]} />
         </group>
 
         {/* ── Info Desk ── */}
