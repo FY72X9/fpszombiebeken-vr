@@ -56,6 +56,8 @@ export function PlayerController() {
       camera.position.set(px, py, pz);
       camera.rotation.order = 'YXZ';
       camera.rotation.set(0, ry, 0);
+      camera.quaternion.setFromEuler(camera.rotation);
+      camera.updateMatrixWorld(true);
     }
   }, [currentRoom, camera]);
 
