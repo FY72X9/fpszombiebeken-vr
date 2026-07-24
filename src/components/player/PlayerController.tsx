@@ -22,7 +22,6 @@ export function PlayerController() {
   const vrSnapRef = useRef(false);
 
   const currentRoom = useGameStore((s) => s.currentRoom);
-  const storePlayerPos = useGameStore((s) => s.player.position);
   const lastRoomRef = useRef<string>(currentRoom);
 
   const forwardVec = useRef(new THREE.Vector3());
@@ -37,14 +36,14 @@ export function PlayerController() {
     if (!hasSyncedRef.current || lastRoomRef.current !== currentRoom) {
       hasSyncedRef.current = true;
       lastRoomRef.current = currentRoom;
-      const [px, py, pz] = storePlayerPos;
+      const statePlayer = useGameStore.getState().player;
+      const [px, py, pz] = statePlayer.position;
+      const [, ry] = statePlayer.rotation;
       camera.position.set(px, py, pz);
-      // Apply spawn-facing direction so player always faces into room
-      const storeRot = useGameStore.getState().player.rotation;
       camera.rotation.order = 'YXZ';
-      camera.rotation.set(0, storeRot[1], 0);
+      camera.rotation.set(0, ry, 0);
     }
-  }, [currentRoom, storePlayerPos, camera]);
+  }, [currentRoom, camera]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
