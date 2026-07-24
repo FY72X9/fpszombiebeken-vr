@@ -8,9 +8,6 @@ export interface BoundingBox2D {
 }
 
 // Room boundary colliders derived from actual room geometry (RoomLayout width/depth).
-// Each room uses its half-extents minus a small player radius margin.
-// Room sizes: lobby_l1=16×16, kelas=12×12, ruang_direktur=12×10, ruang_dosen=14×10,
-//             stairs=8×12, koridor_l2=16×16, kelas_2x=12×12
 export function getRoomBoundary(roomId: string): { halfX: number; halfZ: number } {
   switch (roomId) {
     case 'lobby_l1':
@@ -37,7 +34,7 @@ export function getRoomBoundary(roomId: string): { halfX: number; halfZ: number 
 
 export function getStairElevation(position: THREE.Vector3, roomId: string): number {
   if (roomId === 'stairs_l1_to_l2') {
-    // Smooth step climbing from Y=0 at Z=+5.5 (bottom) to Y=3.2 at Z=-5.5 (top)
+    // Smooth step climbing from Y=0 at Z=+5.0 (bottom) to Y=3.2 at Z=-5.0 (top)
     const zBottom = 5.0;
     const zTop = -5.0;
     const progress = Math.max(0, Math.min(1, (zBottom - position.z) / (zBottom - zTop)));
@@ -53,17 +50,20 @@ export function resolvePlayerCollisions(
 ): THREE.Vector3 {
   const { halfX, halfZ } = getRoomBoundary(roomId);
 
-  // Hard-clamp player inside room boundary walls
-  position.x = Math.max(-halfX + radius, Math.min(halfX - radius, position.x));
-  position.z = Math.max(-halfZ + radius, Math.min(halfZ - radius, position.z));
+  // Allow extra margin near door threshold cutouts (|x| < 1.5 or |z| < 1.5) so player can reach door triggers
+  const nearXDoor = Math.abs(position.x) < 1.5;
+  const nearZDoor = Math.abs(position.z) < 1.5;
 
-  // Apply stair climbing elevation
-  const stairY = getStairElevation(position, roomId);
-  if (stairY > 0) {
-    // Lerp camera Y up to stair height + eye-level offset
-    const targetY = stairY + 1.6;
-    position.y += (targetY - position.y) * 0.15;
-  }
+  const minX = -halfX + radius;
+  const maxX = halfX - radius;
+  const minZ = nearXDoor ? -halfZ - 1.2 : -halfZ + radius;
+  const maxZ = nearXDoor ? halfZ + 1.2 : halfZ - radius;
+
+  const effectiveMinX = nearZDoor ? -halfX - 1.2 : minX;
+  const effectiveMaxX = nearZDoor ? halfX + 1.2 : maxX;
+
+  position.x = Math.max(effectiveMinX, Math.min(effectiveMaxX, position.x));
+  position.z = Math.max(minZ, Math.min(maxZ, position.z));
 
   return position;
 }

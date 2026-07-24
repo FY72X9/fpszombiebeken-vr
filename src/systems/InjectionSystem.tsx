@@ -16,7 +16,23 @@ export function startInjection(targetId: string) {
 }
 
 export function cancelInjection() {
+  if (currentInjectionProgress) {
+    const enemy = activeEnemiesMap.get(currentInjectionProgress.targetId);
+    if (enemy) {
+      enemy.isInjecting = false;
+      enemy.injectionProgress = 0;
+    }
+  }
   currentInjectionProgress = null;
+}
+
+export function getActiveInjectionInfo(): { targetId: string; progressPercent: number } | null {
+  if (!currentInjectionProgress) return null;
+  const ratio = Math.min(1.0, currentInjectionProgress.progressMs / PLAYER_CONFIG.injectionTime);
+  return {
+    targetId: currentInjectionProgress.targetId,
+    progressPercent: Math.round(ratio * 100)
+  };
 }
 
 export function InjectionSystem() {
@@ -30,6 +46,10 @@ export function InjectionSystem() {
 
     const enemy = activeEnemiesMap.get(currentInjectionProgress.targetId);
     if (!enemy || enemy.state === 'cured') {
+      if (enemy) {
+        enemy.isInjecting = false;
+        enemy.injectionProgress = 0;
+      }
       currentInjectionProgress = null;
       setProgressRatio(0);
       return;
@@ -39,11 +59,19 @@ export function InjectionSystem() {
     const ratio = Math.min(1.0, currentInjectionProgress.progressMs / PLAYER_CONFIG.injectionTime);
     setProgressRatio(ratio);
 
+    // Update target zombie's individual injection state
+    enemy.isInjecting = true;
+    enemy.injectionProgress = Math.round(ratio * 100);
+
     if (currentInjectionProgress.progressMs >= PLAYER_CONFIG.injectionTime) {
       enemy.state = 'cured';
+      enemy.isInjecting = false;
+      enemy.injectionProgress = 100;
       currentInjectionProgress = null;
 
       const state = useGameStore.getState();
+      state.markZombieCured(enemy.id);
+
       const antidoteItem = state.player.inventory.find((i) => i.type === 'antidote');
       if (antidoteItem) {
         state.removeInventoryItem(antidoteItem.id);
@@ -59,20 +87,5 @@ export function InjectionSystem() {
     }
   });
 
-  if (!currentInjectionProgress || progressRatio <= 0) return null;
-
-  return (
-    <group position={[0, 2.3, 0]}>
-      {/* 3D High-Visibility Glowing Antidote Injection Progress Ring */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.45, 0.06, 16, 32, progressRatio * Math.PI * 2]} />
-        <meshBasicMaterial color="#22c55e" />
-      </mesh>
-      {/* Glowing Inner Core */}
-      <mesh>
-        <sphereGeometry args={[0.15, 12, 12]} />
-        <meshBasicMaterial color="#4ade80" />
-      </mesh>
-    </group>
-  );
+  return null;
 }

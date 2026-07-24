@@ -4,6 +4,8 @@ import { ROOM_LABELS } from '../../constants/roomGraph';
 import { MobileControls } from './MobileControls';
 import { ModeSelector } from './ModeSelector';
 import { DialogueManager } from './DialogueManager';
+import { getActiveInjectionInfo } from '../../systems/InjectionSystem';
+import { getDamageFlashRatio } from '../../systems/DetectionSystem';
 
 // ─── Storyline text ───────────────────────────────────────────────────────────
 const STORY_LINES = [
@@ -74,12 +76,13 @@ const MOBILE_CONTROLS = [
 ];
 
 const VR_CONTROLS = [
-  { key: 'Stick Kiri', desc: 'Bergerak (teleport / locomotion)' },
-  { key: 'Stick Kanan', desc: 'Putar pandangan (snap-turn)' },
-  { key: 'Trigger Kanan', desc: 'Suntik antidot / interaksi' },
-  { key: 'Tombol A / X', desc: 'Buka pintu / ambil item' },
-  { key: 'Grip', desc: 'Sprint saat ditekan' },
-  { key: 'Tombol B / Y', desc: 'Jongkok toggle' },
+  { key: 'Thumbstick Kiri', desc: 'Bergerak / Smooth Locomotion' },
+  { key: 'Thumbstick Kanan', desc: 'Rotasi Pandangan / Snap Turn' },
+  { key: 'Right Trigger', desc: 'Suntik Antidot Syringe (Tahan 2.5s)' },
+  { key: 'Tombol A / X', desc: 'Interaksi (Buka Pintu / Ambil Item)' },
+  { key: 'Grip Controller', desc: 'Sprint / Lari Cepat' },
+  { key: 'Tombol B / Y', desc: 'Toggle Jongkok (Crouch)' },
+  { key: 'WebXR / AR Button', desc: 'Masuk Mode Immersive MetaQuest 2' },
 ];
 
 // ─── Main UIManager ────────────────────────────────────────────────────────────
@@ -217,10 +220,31 @@ export function UIManager() {
   const syringeCount = antidoteItem ? antidoteItem.count : 0;
   const dosenCuredCount = (cure.indiCured ? 1 : 0) + (cure.gatotCured ? 1 : 0);
 
+  const activeInj = getActiveInjectionInfo();
+  const flashRatio = getDamageFlashRatio();
+
   return (
     <>
       <ModeSelector currentMode={currentMode} onSelectMode={setCurrentMode} />
       <DialogueManager />
+
+      {/* Red Blood Screen Damage Flash Overlay */}
+      {flashRatio > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            pointerEvents: 'none',
+            boxShadow: `inset 0 0 120px ${Math.round(flashRatio * 160)}px rgba(239, 68, 68, ${flashRatio * 0.85})`,
+            background: `rgba(239, 68, 68, ${flashRatio * 0.2})`,
+            zIndex: 900,
+            transition: 'opacity 0.1s ease-out'
+          }}
+        />
+      )}
 
       <div style={hudContainerStyle}>
         {/* Top-Left: Status Badge */}
@@ -245,10 +269,19 @@ export function UIManager() {
           </div>
         </div>
 
-        {/* Center-top: Detection toast */}
-        {detectionMsg && (
+        {/* Center-top: Detection toast or Injection progress gauge */}
+        {activeInj ? (
+          <div style={injectionGaugeStyle}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8', marginBottom: '4px' }}>
+              💉 MENYUNTIK ANTIDOT: {activeInj.progressPercent}%
+            </div>
+            <div style={barBgStyle}>
+              <div style={{ ...barFillStyle, width: `${activeInj.progressPercent}%`, backgroundColor: '#38bdf8' }} />
+            </div>
+          </div>
+        ) : detectionMsg ? (
           <div style={toastStyle}>{detectionMsg}</div>
-        )}
+        ) : null}
 
         {/* Bottom-Left: HP & Stamina */}
         <div style={compactBottomHudStyle}>
@@ -297,7 +330,7 @@ function StoryTab() {
 }
 
 // ─── Controls Tab ──────────────────────────────────────────────────────────────
-function ControlsTab({ isTouchDevice, hasVR }: { isTouchDevice: boolean; hasVR: boolean }) {
+function ControlsTab({ isTouchDevice, hasVR: _hasVR }: { isTouchDevice: boolean; hasVR: boolean }) {
   const [activeDevice, setActiveDevice] = useState<'desktop' | 'mobile' | 'vr'>(
     isTouchDevice ? 'mobile' : 'desktop'
   );
@@ -306,16 +339,21 @@ function ControlsTab({ isTouchDevice, hasVR }: { isTouchDevice: boolean; hasVR: 
   return (
     <div>
       <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-        {(['desktop', 'mobile', ...(hasVR ? ['vr'] : [])] as Array<'desktop' | 'mobile' | 'vr'>).map((d) => (
+        {(['desktop', 'mobile', 'vr'] as Array<'desktop' | 'mobile' | 'vr'>).map((d) => (
           <button key={d} onClick={() => setActiveDevice(d)} style={activeDevice === d ? tabActiveBtnStyle : { ...tabBtnStyle, fontSize: '0.75rem', padding: '5px 10px' }}>
-            {d === 'desktop' ? '🖥️ Desktop' : d === 'mobile' ? '📱 Mobile' : '🥽 VR'}
+            {d === 'desktop' ? '🖥️ Desktop' : d === 'mobile' ? '📱 Mobile' : '🥽 MetaQuest 2'}
           </button>
         ))}
       </div>
+      {activeDevice === 'vr' && (
+        <div style={{ padding: '8px 12px', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '6px', fontSize: '0.8rem', color: '#7dd3fc', marginBottom: '10px' }}>
+          🥽 <strong>MetaQuest 2 WebXR / AR Guide:</strong> Hubungkan MetaQuest 2 via Oculus Browser, klik Enter VR di pojok bawah.
+        </div>
+      )}
       <div style={{ display: 'grid', gap: '6px' }}>
         {controlMap.map(({ key, desc }, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', background: 'rgba(99,102,241,0.25)', color: '#a5b4fc', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.4)', whiteSpace: 'nowrap', minWidth: '90px', textAlign: 'center' }}>
+            <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', background: 'rgba(99,102,241,0.25)', color: '#a5b4fc', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(99,102,241,0.4)', whiteSpace: 'nowrap', minWidth: '95px', textAlign: 'center' }}>
               {key}
             </span>
             <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>{desc}</span>
@@ -481,6 +519,18 @@ const toastStyle: React.CSSProperties = {
   borderRadius: '20px', fontWeight: 700,
   fontSize: '0.88rem', pointerEvents: 'none',
   boxShadow: '0 4px 20px rgba(220,38,38,0.4)',
+};
+
+const injectionGaugeStyle: React.CSSProperties = {
+  position: 'absolute', top: '12%',
+  left: '50%', transform: 'translateX(-50%)',
+  background: 'rgba(15, 23, 42, 0.9)',
+  backdropFilter: 'blur(10px)',
+  border: '1.5px solid #38bdf8',
+  color: '#fff', padding: '10px 24px',
+  borderRadius: '12px', textAlign: 'center',
+  minWidth: '240px', pointerEvents: 'none',
+  boxShadow: '0 0 20px rgba(56, 189, 248, 0.5)',
 };
 
 const compactBottomHudStyle: React.CSSProperties = {

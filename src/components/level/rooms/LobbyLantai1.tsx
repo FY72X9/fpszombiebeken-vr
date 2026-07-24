@@ -1,5 +1,6 @@
 
 import { Door } from '../props/Door';
+import { EvacuationExitDoor } from '../props/EvacuationExitDoor';
 import { Desk, Chair, Sofa, ACUnit } from '../props/Furniture';
 import { BuildingFacade } from '../BuildingFacade';
 import { RoomLayout } from './RoomLayout';
@@ -117,12 +118,16 @@ export function LobbyLantai1() {
           <meshStandardMaterial color="#1e3a8a" roughness={0.95} />
         </mesh>
 
+
         {/* ── Doors ── */}
         <Door position={[-7.9, 0, -3]} rotationY={Math.PI / 2} targetRoom="kelas_1a" label="Kelas 1A" />
         <Door position={[7.9, 0, -3]} rotationY={-Math.PI / 2} targetRoom="kelas_1b" label="Kelas 1B" />
         <Door position={[-7.9, 0, 3]} rotationY={Math.PI / 2} targetRoom="ruang_direktur" label="Ruang Direktur" />
         <Door position={[7.9, 0, 3]} rotationY={-Math.PI / 2} targetRoom="ruang_dosen" label="Ruang Dosen" />
         <Door position={[0, 0, -7.9]} rotationY={0} targetRoom="stairs_l1_to_l2" label="Tangga Lt 2" />
+
+        {/* ── MAIN EVACUATION EXIT DOOR (South Wall) ── */}
+        <EvacuationExitDoor position={[0, 0, 7.9]} rotationY={Math.PI} />
       </RoomLayout>
     </group>
   );

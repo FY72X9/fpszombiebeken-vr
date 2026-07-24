@@ -27,12 +27,13 @@ export function Kelas2B() {
       )}
 
       {/* Class 2B Signboard */}
-      <mesh position={[0, 2.8, 5.8]}>
+      <mesh position={[-5.0, 2.8, -3]}>
         <boxGeometry args={[1.2, 0.3, 0.04]} />
         <meshStandardMaterial color="#475569" emissive="#475569" emissiveIntensity={0.3} />
       </mesh>
 
-      <Door position={[0, 0, 5.9]} rotationY={Math.PI} targetRoom="koridor_l2" label="Koridor Lt 2" />
+      {/* Door to Koridor Lt 2 (West Wall z=-3) */}
+      <Door position={[-5.9, 0, -3]} rotationY={Math.PI / 2} targetRoom="koridor_l2" label="Koridor Lt 2" />
     </RoomLayout>
   );
 }
@@ -57,12 +58,13 @@ export function Kelas2C() {
       </mesh>
 
       {/* Class 2C Signboard */}
-      <mesh position={[0, 2.8, 5.8]}>
+      <mesh position={[5.0, 2.8, 3]}>
         <boxGeometry args={[1.2, 0.3, 0.04]} />
         <meshStandardMaterial color="#166534" emissive="#166534" emissiveIntensity={0.4} />
       </mesh>
 
-      <Door position={[0, 0, 5.9]} rotationY={Math.PI} targetRoom="koridor_l2" label="Koridor Lt 2" />
+      {/* Door to Koridor Lt 2 (East Wall z=3) */}
+      <Door position={[5.9, 0, 3]} rotationY={-Math.PI / 2} targetRoom="koridor_l2" label="Koridor Lt 2" />
     </RoomLayout>
   );
 }

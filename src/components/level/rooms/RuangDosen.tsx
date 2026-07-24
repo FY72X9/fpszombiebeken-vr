@@ -101,7 +101,7 @@ export function RuangDosen() {
       <Zombie id="zombie_dosen_gatot" type="LECTURER" initialPosition={[3, 0, -0.5]} room="ruang_dosen" nameLabel="Dosen Gatot" />
 
       {/* ── Exit Door ── */}
-      <Door position={[-6.9, 0, 2]} rotationY={Math.PI / 2} targetRoom="lobby_l1" label="Lobby Lt 1" />
+      <Door position={[-6.9, 0, 3]} rotationY={Math.PI / 2} targetRoom="lobby_l1" label="Lobby Lt 1" />
     </RoomLayout>
   );
 }

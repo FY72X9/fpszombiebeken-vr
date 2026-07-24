@@ -7,7 +7,7 @@ import { useGameStore } from '../../stores/GameStore';
 import { PLAYER_CONFIG } from '../../constants/gameConfig';
 import { emitNoise } from '../../systems/NoiseSystem';
 import { triggerGlobalInteraction } from '../interaction/InteractionSystem';
-import { resolvePlayerCollisions } from '../../physics/useSimpleCollisions';
+import { resolvePlayerCollisions, getStairElevation } from '../../physics/useSimpleCollisions';
 
 export function PlayerController() {
   const { camera, gl } = useThree();
@@ -115,6 +115,8 @@ export function PlayerController() {
 
       const speed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : PLAYER_CONFIG.moveSpeed.walk;
       const baseHeight = state.player.isCrouching ? PLAYER_CONFIG.height.crouch : PLAYER_CONFIG.height.stand;
+      const stairY = getStairElevation(camera.position, state.currentRoom);
+      const effectiveBaseHeight = baseHeight + stairY;
 
       const isMoving = moveX !== 0 || moveZ !== 0;
 
@@ -124,10 +126,10 @@ export function PlayerController() {
         headbobTimer.current += delta * bobFreq;
 
         const bobY = Math.sin(headbobTimer.current) * bobAmp;
-        camera.position.y = baseHeight + bobY;
+        camera.position.y = effectiveBaseHeight + bobY;
       } else {
         headbobTimer.current = 0;
-        camera.position.y += (baseHeight - camera.position.y) * 0.1;
+        camera.position.y += (effectiveBaseHeight - camera.position.y) * 0.15;
       }
 
       if (isMoving) {

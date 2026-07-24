@@ -34,85 +34,72 @@ export const ROOM_LABELS: Record<RoomId, string> = {
   entrance: 'Gerbang Utama'
 };
 
-// ─── ROOM SPAWN POINTS ────────────────────────────────────────────────────────
-// Fallback spawn [x, y, z, facingY] when no directional door transition is known.
-// facingY: Three.js camera.rotation.y angle (radians). 0=face-north(-Z), Math.PI=face-south(+Z),
-//           Math.PI/2=face-east(+X), -Math.PI/2=face-west(-X)
+// ─── ROOM SPAWN POINTS (Fallback Defaults) ───────────────────────────────────
+// All individual rooms render at local floor Y = 0 (eye level Y = 1.6m).
 export const ROOM_SPAWN_POINTS: Record<string, [number, number, number, number]> = {
-  lobby_l1:         [0,    1.6,  2.0,  Math.PI],   // face south, toward lobby center
-  kelas_1a:         [0,    1.6,  0.0,  0],          // face north toward whiteboard
+  lobby_l1:         [0,    1.6,  2.0,  Math.PI],   // center lobby facing south
+  kelas_1a:         [0,    1.6,  0.0,  0],          // center facing north
   kelas_1b:         [0,    1.6,  0.0,  0],
   ruang_direktur:   [0,    1.6,  0.0,  0],
   ruang_dosen:      [0,    1.6,  0.0,  0],
-  stairs_l1_to_l2:  [0,    1.6,  3.0,  0],
-  koridor_l2:       [0,    4.8,  0.0,  0],
-  kelas_2a:         [0,    4.8,  0.0,  0],
-  kelas_2b:         [0,    4.8,  0.0,  0],
-  kelas_2c:         [0,    4.8,  0.0,  0],
+  stairs_l1_to_l2:  [0,    1.6,  3.5,  0],          // bottom of stairs facing north
+  koridor_l2:       [0,    1.6,  0.0,  0],          // center koridor floor 2
+  kelas_2a:         [0,    1.6,  0.0,  0],
+  kelas_2b:         [0,    1.6,  0.0,  0],
+  kelas_2c:         [0,    1.6,  0.0,  0],
   entrance:         [0,    1.6,  0.0,  0]
 };
 
-// ─── DOOR TRANSITION SPAWNS ────────────────────────────────────────────────────
-// [x, y, z, facingY] — exact interior landing coords + camera facing when entering room via door.
-//
-// Three.js camera facing:
-//   facingY = 0          → face -Z (north, into room toward whiteboard/back wall)
-//   facingY = Math.PI    → face +Z (south, "into room from north wall")
-//   facingY = Math.PI/2  → face +X (east)
-//   facingY = -Math.PI/2 → face -X (west)
+// ─── EXACT DOOR TRANSITION SPAWNS ─────────────────────────────────────────────
+// Format: [x, y, z, facingY]
+// Note: Each room renders at local floor level Y=0, so standing eye height is Y=1.6.
+// Top landing of stairs has floor level Y=3.2 (standing eye height Y=4.8).
 export const DOOR_TRANSITION_SPAWNS: Record<string, Record<string, [number, number, number, number]>> = {
-  // ── From lobby → side rooms ──
+  // ── From Lobby Lt 1 → Side Rooms ──
   lobby_l1: {
-    // Lobby west wall doors (x=-7.9): player enters room from east, faces west into room
-    kelas_1a:        [4.5,  1.6,  3.0,  -Math.PI / 2],
-    ruang_direktur:  [4.5,  1.6,  2.0,  -Math.PI / 2],
-    // Lobby east wall doors (x=+7.9): player enters room from west, faces east into room
-    kelas_1b:        [-4.5, 1.6,  3.0,  Math.PI / 2],
-    ruang_dosen:     [-5.0, 1.6,  2.0,  Math.PI / 2],
-    // Lobby north wall door (z=-7.9): player enters stairs from south, faces north
-    stairs_l1_to_l2: [0,    1.6,  4.0,  0],
+    kelas_1a:        [4.2,  1.6, -3.0, -Math.PI / 2],  // Lobby West door (x=-7.9, z=-3) -> Kelas 1A East door landing (x=4.2, z=-3, face West)
+    ruang_direktur:  [4.2,  1.6,  3.0, -Math.PI / 2],  // Lobby West door (x=-7.9, z=3)  -> Direktur East door landing (x=4.2, z=3, face West)
+    kelas_1b:        [-4.2, 1.6, -3.0,  Math.PI / 2],  // Lobby East door (x=7.9, z=-3)  -> Kelas 1B West door landing (x=-4.2, z=-3, face East)
+    ruang_dosen:     [-5.2, 1.6,  3.0,  Math.PI / 2],  // Lobby East door (x=7.9, z=3)   -> Dosen West door landing (x=-5.2, z=3, face East)
+    stairs_l1_to_l2: [0,    1.6,  4.2,  0],            // Lobby North door (z=-7.9)      -> Stairs South door landing (z=4.2, face North)
   },
-  // ── Back from side rooms → lobby ──
+
+  // ── Back from Side Rooms → Lobby Lt 1 ──
   kelas_1a: {
-    // kelas_1a east wall door (x=+5.9): enters lobby from west, face east toward lobby center
-    lobby_l1:        [-6.0, 1.6, -3.0,  Math.PI / 2],
+    lobby_l1:        [-6.0, 1.6, -3.0,  Math.PI / 2],  // Kelas 1A East door -> Lobby West door landing (x=-6.0, z=-3, face East)
   },
   kelas_1b: {
-    // kelas_1b west wall door (x=-5.9): enters lobby from east, face west toward lobby center
-    lobby_l1:        [6.0,  1.6, -3.0,  -Math.PI / 2],
+    lobby_l1:        [6.0,  1.6, -3.0, -Math.PI / 2],  // Kelas 1B West door -> Lobby East door landing (x=6.0, z=-3, face West)
   },
   ruang_direktur: {
-    // east wall door (x=+5.9): enters lobby from west, face east
-    lobby_l1:        [-6.0, 1.6,  3.0,  Math.PI / 2],
+    lobby_l1:        [-6.0, 1.6,  3.0,  Math.PI / 2],  // Direktur East door -> Lobby West door landing (x=-6.0, z=3, face East)
   },
   ruang_dosen: {
-    // west wall door (x=-6.9): enters lobby from east, face west
-    lobby_l1:        [6.0,  1.6,  3.0,  -Math.PI / 2],
+    lobby_l1:        [6.0,  1.6,  3.0, -Math.PI / 2],  // Dosen West door    -> Lobby East door landing (x=6.0, z=3, face West)
   },
-  // ── Stairs transitions ──
+
+  // ── Stairs Floor 1 <-> Floor 2 ──
   stairs_l1_to_l2: {
-    // South door back to lobby: spawn inside lobby north, face south toward lobby
-    lobby_l1:        [0,    1.6, -5.0,  Math.PI],
-    // North door to koridor: spawn inside koridor south, face north into koridor
-    koridor_l2:      [0,    4.8,  5.0,  0],
+    lobby_l1:        [0,    1.6, -6.0,  Math.PI],      // Stairs South door -> Lobby North door landing (z=-6.0, face South)
+    koridor_l2:      [0,    1.6,  6.0,  0],            // Stairs North door -> Koridor South door landing (z=6.0, face North)
   },
-  // ── From koridor → upper rooms ──
+
+  // ── From Koridor Lt 2 → Upper Rooms ──
   koridor_l2: {
-    // South door back to stairs: face south toward stairs
-    stairs_l1_to_l2: [0,    4.8, -4.0,  Math.PI],
-    // Side doors to classrooms: spawn near south door of each kelas, face north into classroom
-    kelas_2a:        [0,    4.8,  4.0,  0],
-    kelas_2b:        [0,    4.8,  4.0,  0],
-    kelas_2c:        [0,    4.8,  4.0,  0],
+    stairs_l1_to_l2: [0,    4.8, -4.2,  Math.PI],      // Koridor South door (z=7.9) -> Stairs top landing (z=-4.2, y=3.2+1.6=4.8, face South)
+    kelas_2a:        [4.2,  1.6, -3.0, -Math.PI / 2],  // Koridor West door (x=-7.9, z=-3) -> Kelas 2A East door landing (x=4.2, z=-3, face West)
+    kelas_2b:        [-4.2, 1.6, -3.0,  Math.PI / 2],  // Koridor East door (x=7.9, z=-3)  -> Kelas 2B West door landing (x=-4.2, z=-3, face East)
+    kelas_2c:        [4.2,  1.6,  3.0, -Math.PI / 2],  // Koridor West door (x=-7.9, z=3)  -> Kelas 2C East door landing (x=4.2, z=3, face West)
   },
-  // ── Back from upper rooms → koridor ──
+
+  // ── Back from Upper Rooms → Koridor Lt 2 ──
   kelas_2a: {
-    koridor_l2:      [0,    4.8, -6.0,  Math.PI],
+    koridor_l2:      [-6.0, 1.6, -3.0,  Math.PI / 2],  // Kelas 2A East door -> Koridor West door landing (x=-6.0, z=-3, face East)
   },
   kelas_2b: {
-    koridor_l2:      [0,    4.8, -6.0,  Math.PI],
+    koridor_l2:      [6.0,  1.6, -3.0, -Math.PI / 2],  // Kelas 2B West door -> Koridor East door landing (x=6.0, z=-3, face West)
   },
   kelas_2c: {
-    koridor_l2:      [0,    4.8, -6.0,  Math.PI],
+    koridor_l2:      [-6.0, 1.6,  3.0,  Math.PI / 2],  // Kelas 2C East door -> Koridor West door landing (x=-6.0, z=3, face East)
   },
 };

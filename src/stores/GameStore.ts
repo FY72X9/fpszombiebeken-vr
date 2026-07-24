@@ -52,6 +52,7 @@ export interface CureState {
   gatotCured: boolean;
   studentsCured: number;
   totalStudents: number;
+  curedZombieIds: string[];
 }
 
 export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'debug';
@@ -156,6 +157,7 @@ interface GameStoreState {
   setNusaDead: (dead: boolean) => void;
   setNusaRescued: (res: boolean) => void;
   setCured: (flag: string) => void;
+  markZombieCured: (id: string) => void;
   incrementStudentsCured: () => void;
   setThreatLevel: (lvl: 0 | 1 | 2 | 3) => void;
   setDetectionMessage: (msg: string | null) => void;
@@ -203,7 +205,8 @@ const initialCureState: CureState = {
   indiCured: false,
   gatotCured: false,
   studentsCured: 0,
-  totalStudents: 0
+  totalStudents: 0,
+  curedZombieIds: []
 };
 
 const initialSaveData = {
@@ -328,6 +331,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       willyCured: flag === 'willy' ? true : s.cure.willyCured,
       indiCured: flag === 'indi' ? true : s.cure.indiCured,
       gatotCured: flag === 'gatot' ? true : s.cure.gatotCured,
+    }
+  })),
+  markZombieCured: (id) => set((s) => ({
+    cure: {
+      ...s.cure,
+      curedZombieIds: s.cure.curedZombieIds.includes(id) ? s.cure.curedZombieIds : [...s.cure.curedZombieIds, id]
     }
   })),
   incrementStudentsCured: () => set((s) => ({

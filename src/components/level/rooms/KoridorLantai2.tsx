@@ -37,7 +37,9 @@ export function Stairs() {
         <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.5} />
       </mesh>
 
+      {/* South door to Lobby Lt 1 */}
       <Door position={[0, 0, 5.9]} rotationY={Math.PI} targetRoom="lobby_l1" label="Lobby Lt 1" />
+      {/* North door to Koridor Lt 2 */}
       <Door position={[0, 3.2, -5.9]} rotationY={0} targetRoom="koridor_l2" label="Koridor Lt 2" />
     </RoomLayout>
   );
@@ -60,7 +62,6 @@ export function KoridorLantai2() {
           <boxGeometry args={[0.4, 2.2, 8]} />
           <CelMaterial color="#1e3a8a" />
         </mesh>
-        {/* Locker Door Handles */}
         {[-3, -1, 1, 3].map((z, i) => (
           <mesh key={i} position={[0.22, 0, z]}>
             <boxGeometry args={[0.04, 0.2, 0.04]} />
@@ -90,9 +91,9 @@ export function KoridorLantai2() {
       </mesh>
 
       {/* Doors to Upper Classrooms */}
-      <Door position={[-7.9, 0, -4]} rotationY={Math.PI / 2} targetRoom="kelas_2a" label="Kelas 2A (Nusa)" />
-      <Door position={[7.9, 0, -4]} rotationY={-Math.PI / 2} targetRoom="kelas_2b" label="Kelas 2B" />
-      <Door position={[-7.9, 0, 4]} rotationY={Math.PI / 2} targetRoom="kelas_2c" label="Kelas 2C" />
+      <Door position={[-7.9, 0, -3]} rotationY={Math.PI / 2} targetRoom="kelas_2a" label="Kelas 2A (Nusa)" />
+      <Door position={[7.9, 0, -3]} rotationY={-Math.PI / 2} targetRoom="kelas_2b" label="Kelas 2B" />
+      <Door position={[-7.9, 0, 3]} rotationY={Math.PI / 2} targetRoom="kelas_2c" label="Kelas 2C" />
       <Door position={[0, 0, 7.9]} rotationY={Math.PI} targetRoom="stairs_l1_to_l2" label="Tangga Lt 1" />
     </RoomLayout>
   );

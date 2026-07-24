@@ -8,6 +8,7 @@ import { RuangDosen } from './rooms/RuangDosen';
 import { Stairs, KoridorLantai2 } from './rooms/KoridorLantai2';
 import { Kelas2A } from './rooms/Kelas2A';
 import { Kelas2B, Kelas2C } from './rooms/Kelas2B';
+import { NusaFollower } from '../npc/NusaFollower';
 
 export function LevelLoader() {
   const currentRoom = useGameStore((s) => s.currentRoom);
@@ -44,6 +45,7 @@ export function LevelLoader() {
     <group>
       <EnvironmentBackdrop />
       {renderRoom()}
+      <NusaFollower />
     </group>
   );
 }

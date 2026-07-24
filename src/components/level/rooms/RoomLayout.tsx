@@ -70,24 +70,28 @@ export function RoomLayout({
       <ambientLight intensity={0.35} />
 
       {/* ── Walls ── */}
-      {/* North wall (z = -halfD) */}
+      {/* North wall with doorway cutout */}
       <group>
-        {/* Lower */}
-        <mesh position={[0, dado / 2, -halfD]}>
-          <boxGeometry args={[width, dado, wallT]} />
+        <mesh position={[-(halfW - (halfW - doorW / 2) / 2), dado / 2, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, dado, wallT]} />
           <meshStandardMaterial color={accentColor} roughness={0.8} />
         </mesh>
-        {/* Upper */}
-        <mesh position={[0, dado + (height - dado) / 2, -halfD]}>
-          <boxGeometry args={[width, height - dado, wallT]} />
+        <mesh position={[(halfW - (halfW - doorW / 2) / 2), dado / 2, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, dado, wallT]} />
+          <meshStandardMaterial color={accentColor} roughness={0.8} />
+        </mesh>
+        <mesh position={[-(halfW - (halfW - doorW / 2) / 2), dado + (height - dado) / 2, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, height - dado, wallT]} />
           <meshStandardMaterial color={wallColor} roughness={0.7} />
         </mesh>
-        {/* Dado rail */}
+        <mesh position={[(halfW - (halfW - doorW / 2) / 2), dado + (height - dado) / 2, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, height - dado, wallT]} />
+          <meshStandardMaterial color={wallColor} roughness={0.7} />
+        </mesh>
         <mesh position={[0, dado, -halfD]}>
           <boxGeometry args={[width, 0.06, wallT + 0.01]} />
           <meshStandardMaterial color="#94a3b8" roughness={0.3} metalness={0.2} />
         </mesh>
-        {/* Baseboard */}
         <mesh position={[0, 0.06, -halfD]}>
           <boxGeometry args={[width, 0.12, wallT + 0.01]} />
           <meshStandardMaterial color="#64748b" />
