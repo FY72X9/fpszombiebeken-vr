@@ -13,6 +13,7 @@ import { SaveSystem } from './components/save/SaveSystem';
 import { DetectionSystem } from './systems/DetectionSystem';
 import { InjectionSystem } from './systems/InjectionSystem';
 import { NoiseSystem } from './systems/NoiseSystem';
+import { VRHUD } from './components/ui/VRHUD';
 import { PerformanceMonitor } from './components/debug/PerformanceMonitor';
 
 function VRSessionTracker() {
@@ -44,6 +45,7 @@ export default function App() {
       <InteractionSystem />
       <PlayerController />
       <PlayerArms />
+      <VRHUD />
       
       {phase === 'debug' && <PerformanceMonitor />}
     </>

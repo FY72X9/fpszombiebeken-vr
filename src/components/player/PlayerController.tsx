@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
-import { useXR, XROrigin, useXRControllerLocomotion } from '@react-three/xr';
+import { useXR, XROrigin } from '@react-three/xr';
 import { PointerLockControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../../stores/GameStore';
@@ -14,13 +14,17 @@ export function PlayerController() {
   const session = useXR((state) => state.session);
   const isPresenting = !!session;
   const controlsRef = useRef<any>(null);
-  const xrOriginRef = useRef<THREE.Group>(null);
+  const playerRigRef = useRef<THREE.Group>(null);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const headbobTimer = useRef<number>(0);
 
-  // WebXR debouncing refs for controller buttons
+  // Debouncing ref for VR buttons
   const vrBtnPressedRef = useRef(false);
+
+  // Real-time VR position & facing yaw refs
+  const vrPos = useRef(new THREE.Vector3(0, 1.6, 2.0));
+  const vrYaw = useRef<number>(Math.PI);
 
   const currentRoom = useGameStore((s) => s.currentRoom);
   const lastRoomRef = useRef<string>(currentRoom);
@@ -32,15 +36,6 @@ export function PlayerController() {
 
   const hasSyncedRef = useRef(false);
 
-  // Official @react-three/xr v6 Built-in VR Locomotion Hook!
-  // Uses Left Controller Joystick for Smooth Locomotion and Right Controller Joystick for 45° Snap Turning.
-  useXRControllerLocomotion(
-    xrOriginRef,
-    { speed: 2.2 },
-    { type: 'snap', degrees: 45 },
-    'left'
-  );
-
   // Sync player position & facing on initial mount and on every room transition
   useEffect(() => {
     if (!hasSyncedRef.current || lastRoomRef.current !== currentRoom) {
@@ -50,9 +45,12 @@ export function PlayerController() {
       const [px, py, pz] = statePlayer.position;
       const [, ry] = statePlayer.rotation;
 
-      if (xrOriginRef.current) {
-        xrOriginRef.current.position.set(px, 0, pz);
-        xrOriginRef.current.rotation.set(0, ry, 0);
+      vrPos.current.set(px, 0, pz);
+      vrYaw.current = ry;
+
+      if (playerRigRef.current) {
+        playerRigRef.current.position.set(px, 0, pz);
+        playerRigRef.current.rotation.set(0, ry, 0);
       }
 
       camera.position.set(px, py, pz);
@@ -61,20 +59,22 @@ export function PlayerController() {
     }
   }, [currentRoom, camera]);
 
-  // WebXR Session Button Listeners for A / B / X / Y / Trigger / Grip
+  // WebXR Session Button Listeners (selectstart / squeezestart)
   useEffect(() => {
     if (!session) return;
 
-    const handleSelect = () => {
+    const handleVRInteraction = () => {
       triggerGlobalInteraction();
     };
 
-    session.addEventListener('selectstart', handleSelect);
-    session.addEventListener('select', handleSelect);
+    session.addEventListener('selectstart', handleVRInteraction);
+    session.addEventListener('select', handleVRInteraction);
+    session.addEventListener('squeezestart', handleVRInteraction);
 
     return () => {
-      session.removeEventListener('selectstart', handleSelect);
-      session.removeEventListener('select', handleSelect);
+      session.removeEventListener('selectstart', handleVRInteraction);
+      session.removeEventListener('select', handleVRInteraction);
+      session.removeEventListener('squeezestart', handleVRInteraction);
     };
   }, [session]);
 
@@ -127,12 +127,54 @@ export function PlayerController() {
     if (state.phase !== 'playing') return;
 
     if (isPresenting && session) {
-      // ── WebXR Controller Button Press Handler (A / B / X / Y / Trigger / Grip) ──
+      // ── WebXR VR Controller Direct Locomotion & Interaction Handler ──
       for (const source of session.inputSources) {
         if (!source.gamepad) continue;
         const gp = source.gamepad;
 
-        // Check buttons[0] (Trigger), buttons[1] (Grip), buttons[4] (A/X), buttons[5] (B/Y)
+        // Check both axis sets: [2,3] and [0,1] for maximum controller compatibility
+        let stickX = 0;
+        let stickY = 0;
+
+        if (Math.abs(gp.axes[2] ?? 0) > 0.1 || Math.abs(gp.axes[3] ?? 0) > 0.1) {
+          stickX = gp.axes[2];
+          stickY = gp.axes[3];
+        } else if (Math.abs(gp.axes[0] ?? 0) > 0.1 || Math.abs(gp.axes[1] ?? 0) > 0.1) {
+          stickX = gp.axes[0];
+          stickY = gp.axes[1];
+        }
+
+        if (source.handedness === 'left') {
+          // Left Controller Joystick: Smooth Locomotion (Forward/Backward/Strafe)
+          if (Math.abs(stickX) > 0.12 || Math.abs(stickY) > 0.12) {
+            camera.getWorldDirection(forwardVec.current);
+            forwardVec.current.y = 0;
+            if (forwardVec.current.lengthSq() > 0.0001) forwardVec.current.normalize();
+
+            rightVec.current.crossVectors(forwardVec.current, upVec.current).normalize();
+
+            moveDirVec.current.set(0, 0, 0);
+            moveDirVec.current.addScaledVector(forwardVec.current, -stickY);
+            moveDirVec.current.addScaledVector(rightVec.current, stickX);
+
+            if (moveDirVec.current.lengthSq() > 0.0001) {
+              moveDirVec.current.normalize();
+              const speed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : PLAYER_CONFIG.moveSpeed.walk;
+              vrPos.current.x += moveDirVec.current.x * speed * delta;
+              vrPos.current.z += moveDirVec.current.z * speed * delta;
+
+              resolvePlayerCollisions(vrPos.current, 0.45, state.currentRoom);
+            }
+          }
+        } else if (source.handedness === 'right') {
+          // Right Controller Joystick: Smooth Eye-View Rotation
+          if (Math.abs(stickX) > 0.12) {
+            const turnSpeed = 1.8 * delta;
+            vrYaw.current -= stickX * turnSpeed;
+          }
+        }
+
+        // VR Buttons: Trigger (0), Grip (1), Button A/X (4), Button B/Y (5)
         const isBtnPressed = gp.buttons.some((b, idx) => [0, 1, 4, 5].includes(idx) && b && (b.pressed || b.value > 0.5));
         if (isBtnPressed) {
           if (!vrBtnPressedRef.current) {
@@ -144,22 +186,20 @@ export function PlayerController() {
         }
       }
 
-      // Enforce room collision boundaries on XROrigin
-      if (xrOriginRef.current) {
-        resolvePlayerCollisions(xrOriginRef.current.position, 0.45, state.currentRoom);
-
-        // Sync VR player position & orientation back to global Zustand store
-        const originPos = xrOriginRef.current.position;
-        const originRot = xrOriginRef.current.rotation;
-
-        useGameStore.setState((s) => ({
-          player: {
-            ...s.player,
-            position: [originPos.x, originPos.y + 1.6, originPos.z],
-            rotation: [camera.rotation.x, originRot.y, camera.rotation.z]
-          }
-        }));
+      // Update Rig transform
+      if (playerRigRef.current) {
+        playerRigRef.current.position.set(vrPos.current.x, 0, vrPos.current.z);
+        playerRigRef.current.rotation.set(0, vrYaw.current, 0);
       }
+
+      // Update global Zustand state
+      useGameStore.setState((s) => ({
+        player: {
+          ...s.player,
+          position: [vrPos.current.x, 1.6, vrPos.current.z],
+          rotation: [camera.rotation.x, vrYaw.current, camera.rotation.z]
+        }
+      }));
     } else {
       // ── Non-VR Desktop & Mobile Controls ──
       const inputMove = state.input.move;
@@ -238,8 +278,8 @@ export function PlayerController() {
   });
 
   return (
-    <>
-      <XROrigin ref={xrOriginRef} position={[0, 0, 0]} />
+    <group ref={playerRigRef}>
+      <XROrigin position={[0, 0, 0]} />
       {!isPresenting && (
         <PointerLockControls
           ref={controlsRef}
@@ -247,6 +287,6 @@ export function PlayerController() {
           makeDefault
         />
       )}
-    </>
+    </group>
   );
 }
