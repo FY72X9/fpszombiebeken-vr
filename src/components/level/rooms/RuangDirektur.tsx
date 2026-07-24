@@ -102,8 +102,8 @@ export function RuangDirektur() {
       {/* ── Boss Willy Zombie ── */}
       <Zombie id="zombie_boss_willy" type="BOSS_WILLY" initialPosition={[0, 0, -1]} room="ruang_direktur" nameLabel="Boss Willy" />
 
-      {/* ── Exit Door ── */}
-      <Door position={[5.9, 0, 3]} rotationY={-Math.PI / 2} targetRoom="lobby_l1" label="Lobby Lt 1" />
+      {/* ── Exit Door (West Wall z=3) ── */}
+      <Door position={[-5.9, 0, 3]} rotationY={Math.PI / 2} targetRoom="lobby_l1" label="Lobby Lt 1" />
     </RoomLayout>
   );
 }
