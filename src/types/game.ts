@@ -65,6 +65,8 @@ export interface PlayerState {
   isInVR: boolean;
   isSprinting: boolean;
   isCrouching: boolean;
+  injectionsUsed: number;
+  injectionsConsumed: number;
 }
 
 export interface NusaState {

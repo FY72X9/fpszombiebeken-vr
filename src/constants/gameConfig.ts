@@ -1,5 +1,3 @@
-import { Vector3Tuple } from '../types/game';
-
 export const DETECTION_CONFIG = {
   CONE_FOV_HORIZONTAL: 120,
   CONE_FOV_VERTICAL: 80,

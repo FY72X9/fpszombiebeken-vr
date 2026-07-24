@@ -5,8 +5,7 @@ import { useGameStore } from '../../stores/GameStore';
 const xrStore = createXRStore({
   hand: { model: false },
   controller: { 
-    grabPointer: false,
-    rayPointer: { near: 0.1, far: 20 }
+    grabPointer: false
   }
 });
 
@@ -15,19 +14,16 @@ interface XRProviderProps {
 }
 
 export function XRProvider({ children }: XRProviderProps) {
-  const setVrFlag = useGameStore((s) => s.player.isInVR);
-  const updateVRController = useGameStore((s) => s.updateVRController);
-
   useEffect(() => {
-    const unsub = xrStore.subscribe((state, prev) => {
+    const unsub = xrStore.subscribe((state) => {
       useGameStore.setState((s) => ({
-        player: { ...s.player, isInVR: state === 'visible' }
+        player: { ...s.player, isInVR: !!state.session }
       }));
     });
     return () => { unsub(); };
   }, []);
 
-  return <XR store={xrStore}>{children</XR>;
+  return <XR store={xrStore}>{children}</XR>;
 }
 
 export { xrStore };

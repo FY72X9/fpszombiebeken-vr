@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { Vector3Tuple } from '../types/game';
-import { computeModifiedInitialPlayer } from '../systems/PlayerInitialization';
 
 export interface InventoryItem {
   id: string;
@@ -339,12 +338,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   reset: () => {
     // Initialize Bina's starter items based on core game design
     const initialState = {
-      phase: 'intro',
+      phase: 'intro' as GamePhase,
       currentRoom: 'kelas_2a',
       player: initialPlayerState,
       nusa: initialNusaState,
       cure: initialCureState,
-      threatLevel: 0,
+      threatLevel: 0 as 0 | 1 | 2 | 3,
       lastDetectionMessage: null,
       backgroundMusicKey: null,
       objectives: [],
