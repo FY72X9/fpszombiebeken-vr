@@ -176,12 +176,16 @@ interface GameStoreState {
 
 const initialPlayerState: PlayerState = {
   position: [0, 1.6, 2.0],  // lobby_l1 safe interior spawn
-  rotation: [0, 0, 0],
+  rotation: [0, Math.PI, 0],
   health: 100,
   maxHealth: 100,
   stamina: 100,
   maxStamina: 100,
-  inventory: [],
+  inventory: [
+    { id: 'antidote_1', type: 'antidote', name: 'Antidot', count: 3, description: 'Antidot untuk menyembuhkan zombie', iconPath: '/assets/icons/antidote.png' },
+    { id: 'bandage_1', type: 'bandage', name: 'Bandage', count: 2, description: 'Penutup luka segera', iconPath: '/assets/icons/bandage.png' },
+    { id: 'flashlight_1', type: 'flashlight', name: 'Senter', count: 1, description: 'Senter taktikal', iconPath: '/assets/icons/flashlight.png' }
+  ],
   equippedSlot: 0,
   isInVR: false,
   isSprinting: false,
@@ -354,6 +358,9 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
   })),
   reset: () => {
+    try {
+      localStorage.removeItem('fpszombiebeken-save');
+    } catch (e) { }
     // Initialize Bina's starter items based on core game design
     const initialState = {
       phase: 'intro' as GamePhase,

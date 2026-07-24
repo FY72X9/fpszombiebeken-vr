@@ -37,17 +37,17 @@ export const ROOM_LABELS: Record<RoomId, string> = {
 // ─── ROOM SPAWN POINTS (Fallback Defaults) ───────────────────────────────────
 // Three.js facing angles: 0 = North (-Z), Math.PI = South (+Z), Math.PI/2 = West (-X), -Math.PI/2 = East (+X)
 export const ROOM_SPAWN_POINTS: Record<string, [number, number, number, number]> = {
-  lobby_l1:         [0,    1.6,  2.0,  Math.PI],   // center lobby facing south
-  kelas_1a:         [0,    1.6,  0.0,  0],          // center facing north
-  kelas_1b:         [0,    1.6,  0.0,  0],
-  ruang_direktur:   [0,    1.6,  0.0,  0],
-  ruang_dosen:      [0,    1.6,  0.0,  0],
-  stairs_l1_to_l2:  [0,    1.6,  4.2,  0],          // bottom of stairs facing north
-  koridor_l2:       [0,    1.6,  0.0,  0],          // center koridor floor 2
-  kelas_2a:         [0,    1.6,  0.0,  0],
-  kelas_2b:         [0,    1.6,  0.0,  0],
-  kelas_2c:         [0,    1.6,  0.0,  0],
-  entrance:         [0,    1.6,  0.0,  0]
+  lobby_l1:         [0,    1.6,  2.0,  Math.PI],   // center lobby safe interior facing south
+  kelas_1a:         [4.5,  1.6, -3.0,  Math.PI / 2],  // East door facing WEST into room
+  kelas_1b:         [-4.5, 1.6, -3.0, -Math.PI / 2],  // West door facing EAST into room
+  ruang_direktur:   [-4.5, 1.6,  3.0, -Math.PI / 2],  // West door facing EAST into room
+  ruang_dosen:      [4.5,  1.6,  3.0,  Math.PI / 2],  // East door facing WEST into room
+  stairs_l1_to_l2:  [0.0,  1.6,  4.2,  0],          // bottom of stairs facing NORTH up stairs
+  koridor_l2:       [0.0,  1.6,  6.5,  0],          // South stairs door facing NORTH into koridor
+  kelas_2a:         [4.5,  1.6, -3.0,  Math.PI / 2],  // East door facing WEST into room
+  kelas_2b:         [-4.5, 1.6, -3.0, -Math.PI / 2],  // West door facing EAST into room
+  kelas_2c:         [4.5,  1.6,  3.0,  Math.PI / 2],  // East door facing WEST into room
+  entrance:         [0.0,  1.6,  6.5,  Math.PI]       // South gate facing SOUTH
 };
 
 // ─── GROUND-UP CALCULATED DOOR TRANSITION SPAWNS ─────────────────────────────────

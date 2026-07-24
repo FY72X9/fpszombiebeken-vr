@@ -4,7 +4,7 @@ import { ROOM_LABELS } from '../../constants/roomGraph';
 import { MobileControls } from './MobileControls';
 import { ModeSelector } from './ModeSelector';
 import { DialogueManager } from './DialogueManager';
-import { getActiveInjectionInfo } from '../../systems/InjectionSystem';
+import { getActiveInjectionInfo, cancelInjection } from '../../systems/InjectionSystem';
 import { getDamageFlashRatio } from '../../systems/DetectionSystem';
 
 // ─── Storyline text ───────────────────────────────────────────────────────────
@@ -194,10 +194,10 @@ export function UIManager() {
             Bina tertangkap zombie dan tidak dapat melanjutkan misi.<br />
             Coba lagi dan bergerak lebih diam-diam!
           </p>
-          <button onClick={() => { reset(); setPhase('playing'); }} style={startBtnStyle}>
+          <button onClick={() => { cancelInjection(); reset(); setPhase('playing'); }} style={startBtnStyle}>
             🔄 Coba Lagi
           </button>
-          <button onClick={() => { reset(); setPhase('menu'); }} style={{ ...tabBtnStyle, marginTop: '10px', width: '100%' }}>
+          <button onClick={() => { cancelInjection(); reset(); setPhase('menu'); }} style={{ ...tabBtnStyle, marginTop: '10px', width: '100%' }}>
             Menu Utama
           </button>
         </div>
@@ -216,8 +216,8 @@ export function UIManager() {
             Nusa berhasil diselamatkan! Kampus BINUS Bekasi telah diamankan.<br />
             Terima kasih telah menjadi pahlawan bioteknologi!
           </p>
-          <button onClick={() => { reset(); setPhase('menu'); }} style={{ ...startBtnStyle, background: 'linear-gradient(135deg, #16a34a, #15803d)' }}>
-            🏠 Menu Utama
+          <button onClick={() => { cancelInjection(); reset(); setPhase('menu'); }} style={{ ...startBtnStyle, background: 'linear-gradient(135deg, #16a34a, #15803d)' }}>
+            🏠 Menu Utama & Reset
           </button>
         </div>
       </div>
