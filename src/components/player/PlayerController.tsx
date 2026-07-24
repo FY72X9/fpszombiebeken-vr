@@ -28,13 +28,17 @@ export function PlayerController() {
 
   const hasSyncedRef = useRef(false);
 
-  // Sync camera to store position on initial mount and on every room transition
+  // Sync camera to store position AND facing on initial mount and on every room transition
   useEffect(() => {
-    // Always sync camera on mount (first render) to match store starting position
     if (!hasSyncedRef.current || lastRoomRef.current !== currentRoom) {
       hasSyncedRef.current = true;
       lastRoomRef.current = currentRoom;
-      camera.position.set(storePlayerPos[0], storePlayerPos[1], storePlayerPos[2]);
+      const [px, py, pz] = storePlayerPos;
+      camera.position.set(px, py, pz);
+      // Apply spawn-facing direction so player always faces into room
+      const storeRot = useGameStore.getState().player.rotation;
+      camera.rotation.order = 'YXZ';
+      camera.rotation.set(0, storeRot[1], 0);
     }
   }, [currentRoom, storePlayerPos, camera]);
 

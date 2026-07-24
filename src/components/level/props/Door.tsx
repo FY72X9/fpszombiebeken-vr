@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../../../stores/GameStore';
-import { emitNoise } from '../../../systems/NoiseSystem';
-import { NOISE_CONFIG } from '../../../constants/gameConfig';
 import { RoomId } from '../../../types/game';
 import { registerInteractiveDoor, unregisterInteractiveDoor } from '../../interaction/InteractionSystem';
 import { DOOR_TRANSITION_SPAWNS } from '../../../constants/roomGraph';
+import { emitNoise } from '../../../systems/NoiseSystem';
+import { NOISE_CONFIG } from '../../../constants/gameConfig';
 
 interface DoorProps {
   position: [number, number, number];
@@ -18,29 +18,11 @@ export function Door({ position, rotationY = 0, targetRoom, label = 'Pintu' }: D
   const setRoom = useGameStore((s) => s.setRoom);
   const currentRoom = useGameStore((s) => s.currentRoom);
 
-  useEffect(() => {
-    const doorId = `door_${position.join('_')}`;
-    const customSpawn = DOOR_TRANSITION_SPAWNS[currentRoom]?.[targetRoom];
-
-    registerInteractiveDoor({
-      id: doorId,
-      position,
-      targetRoom,
-      label,
-      action: () => setRoom(targetRoom, customSpawn)
-    });
-
-    return () => {
-      unregisterInteractiveDoor(doorId);
-    };
-  }, [position, targetRoom, label, setRoom, currentRoom]);
-
-  const toggleDoor = (e: any) => {
-    e.stopPropagation();
-    setIsOpen(!isOpen);
-    const customSpawn = DOOR_TRANSITION_SPAWNS[currentRoom]?.[targetRoom];
-    setRoom(targetRoom, customSpawn);
-
+  const doTransition = () => {
+    const entry = DOOR_TRANSITION_SPAWNS[currentRoom]?.[targetRoom];
+    const spawnPos = entry ? [entry[0], entry[1], entry[2]] as [number, number, number] : undefined;
+    const facingY = entry ? entry[3] : undefined;
+    setRoom(targetRoom, spawnPos, facingY);
     emitNoise({
       position,
       radius: NOISE_CONFIG.DOOR_SLOW.radius,
@@ -49,28 +31,68 @@ export function Door({ position, rotationY = 0, targetRoom, label = 'Pintu' }: D
     });
   };
 
+  useEffect(() => {
+    const doorId = `door_${position.join('_')}`;
+    registerInteractiveDoor({
+      id: doorId,
+      position,
+      targetRoom,
+      label,
+      action: doTransition
+    });
+    return () => { unregisterInteractiveDoor(doorId); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position.join(','), targetRoom, label, currentRoom]);
+
+  const toggleDoor = (e: any) => {
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+    doTransition();
+  };
+
   const doorAngle = isOpen ? Math.PI / 2 : 0;
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Doorframe */}
-      <mesh position={[0, 1.25, 0]}>
-        <boxGeometry args={[1.2, 2.5, 0.1]} />
-        <meshStandardMaterial color="#2d3748" wireframe />
+      {/* Door Frame left */}
+      <mesh position={[-0.6, 1.25, 0]}>
+        <boxGeometry args={[0.1, 2.5, 0.15]} />
+        <meshStandardMaterial color="#374151" />
+      </mesh>
+      {/* Door Frame right */}
+      <mesh position={[0.6, 1.25, 0]}>
+        <boxGeometry args={[0.1, 2.5, 0.15]} />
+        <meshStandardMaterial color="#374151" />
+      </mesh>
+      {/* Door Frame top */}
+      <mesh position={[0, 2.57, 0]}>
+        <boxGeometry args={[1.3, 0.15, 0.15]} />
+        <meshStandardMaterial color="#374151" />
       </mesh>
 
-      {/* Animated Pivot Panel */}
+      {/* Door Panel (pivot on left edge) */}
       <group position={[-0.55, 0, 0]} rotation={[0, doorAngle, 0]}>
-        <mesh position={[0.55, 1.25, 0]} onClick={toggleDoor}>
-          <boxGeometry args={[1.1, 2.4, 0.08]} />
-          <meshStandardMaterial color="#8b5cf6" roughness={0.3} />
+        <mesh position={[0.55, 1.25, 0]} onClick={toggleDoor} castShadow>
+          <boxGeometry args={[1.1, 2.5, 0.07]} />
+          <meshStandardMaterial color="#6d28d9" roughness={0.2} metalness={0.1} />
         </mesh>
-        {/* Door Knob */}
+        {/* Decorative glass strip */}
+        <mesh position={[0.55, 1.65, 0.04]}>
+          <boxGeometry args={[0.7, 0.5, 0.01]} />
+          <meshStandardMaterial color="#bfdbfe" transparent opacity={0.6} />
+        </mesh>
+        {/* Door knob */}
         <mesh position={[1.0, 1.2, 0.06]}>
-          <sphereGeometry args={[0.05, 16, 16]} />
-          <meshStandardMaterial color="#e2e8f0" metalness={0.8} />
+          <sphereGeometry args={[0.055, 12, 12]} />
+          <meshStandardMaterial color="#e2e8f0" metalness={0.9} roughness={0.1} />
         </mesh>
       </group>
+
+      {/* Glowing indicator strip at top frame */}
+      <mesh position={[0, 2.62, 0]}>
+        <boxGeometry args={[1.2, 0.06, 0.12]} />
+        <meshBasicMaterial color="#a78bfa" />
+      </mesh>
     </group>
   );
 }

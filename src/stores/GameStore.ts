@@ -140,7 +140,7 @@ interface GameStoreState {
   
   // Actions
   setPhase: (p: GamePhase) => void;
-  setRoom: (id: string, spawnPos?: Vector3Tuple) => void;
+  setRoom: (id: string, spawnPos?: Vector3Tuple, facingY?: number) => void;
   setPlayerPosition: (p: Vector3Tuple) => void;
   setPlayerRotation: (r: Vector3Tuple) => void;
   setPlayerHealth: (h: number) => void;
@@ -281,11 +281,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   playerInitialized: false,
   
   setPhase: (p) => set({ phase: p }),
-  setRoom: (id, spawnPos) => {
-    const targetPos = spawnPos || ROOM_SPAWN_POINTS[id] || [0, 1.6, 4.0];
+  setRoom: (id, spawnPos, facingY) => {
+    const rawSpawn = ROOM_SPAWN_POINTS[id] || [0, 1.6, 2.0, 0];
+    const targetPos: Vector3Tuple = spawnPos || [rawSpawn[0], rawSpawn[1], rawSpawn[2]];
+    const targetFacingY = facingY !== undefined ? facingY : (rawSpawn[3] ?? 0);
     set((s) => ({
       currentRoom: id,
-      player: { ...s.player, position: targetPos }
+      player: { ...s.player, position: targetPos, rotation: [0, targetFacingY, 0] }
     }));
   },
   setPlayerPosition: (p) => set((s) => ({ player: { ...s.player, position: p } })),
