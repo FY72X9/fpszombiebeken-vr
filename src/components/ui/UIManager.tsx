@@ -15,6 +15,7 @@ export function UIManager() {
   const threatLevel = useGameStore((s) => s.threatLevel);
   const detectionMsg = useGameStore((s) => s.lastDetectionMessage);
   const cure = useGameStore((s) => s.cure);
+  const nusaState = useGameStore((s) => s.nusa);
 
   if (phase === 'menu') {
     return (
@@ -27,7 +28,7 @@ export function UIManager() {
           <button
             onClick={() => {
               reset();
-              setPhase('intro');
+              setPhase('playing');
             }}
             style={btnStyle}
           >
@@ -82,30 +83,32 @@ export function UIManager() {
 
   const roomTitle = ROOM_LABELS[currentRoom as keyof typeof ROOM_LABELS] || currentRoom;
   const threatColors = ['#22c55e', '#eab308', '#f97316', '#ef4444'];
-  const threatText = ['Aman (Calm)', 'Waspada (Alert)', 'Pengejaran (Chase)', 'Diserang (Attack)'];
+  const threatText = ['Aman', 'Waspada', 'Kejar', 'Diserang'];
+
+  const antidoteItem = player.inventory.find((i) => i.type === 'antidote');
+  const syringeCount = antidoteItem ? antidoteItem.count : 0;
+  const dosenCuredCount = (cure.indiCured ? 1 : 0) + (cure.gatotCured ? 1 : 0);
 
   return (
     <>
       {/* Top Right Mode Switcher Bar */}
       <ModeSelector currentMode={currentMode} onSelectMode={setCurrentMode} />
 
-      {/* Storyline & Dialogue Manager */}
+      {/* Dialogue Manager */}
       <DialogueManager />
 
       <div style={hudContainerStyle}>
-        {/* Top Left: Room & Threat */}
-        <div style={panelStyle}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#f8fafc' }}>{roomTitle}</div>
-          <div style={{ color: threatColors[threatLevel], fontWeight: '600', marginTop: '2px', fontSize: '0.85rem' }}>
-            Status: {threatText[threatLevel]}
+        {/* Top Left Corner: Ultra-Compact Badge */}
+        <div style={compactCornerBadgeStyle}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#f8fafc' }}>
+            📍 {roomTitle} <span style={{ color: threatColors[threatLevel] }}>({threatText[threatLevel]})</span>
           </div>
-        </div>
 
-        {/* Top Center: Objectives & Cure status */}
-        <div style={panelStyle}>
-          <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>Misi: Selamatkan Nusa dari Kelas 2A & Cure Dosen</div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
-            Cured: Willy [{cure.willyCured ? '✓' : '✗'}] | Indi [{cure.indiCured ? '✓' : '✗'}] | Gatot [{cure.gatotCured ? '✓' : '✗'}]
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '0.8rem' }}>
+            <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>💉 Syringe: {syringeCount}</span>
+            <span style={{ color: '#cbd5e1' }}>
+              👥 Saved: Nusa [{nusaState.isRescued ? '✓' : '✗'}] | Willy [{cure.willyCured ? '✓' : '✗'}] | Dosen [{dosenCuredCount}/2]
+            </span>
           </div>
         </div>
 
@@ -116,37 +119,21 @@ export function UIManager() {
           </div>
         )}
 
-        {/* Bottom Left HUD: Health & Stamina */}
-        <div style={bottomHudStyle}>
+        {/* Bottom Left HUD: Compact Health & Stamina Bars */}
+        <div style={compactBottomHudStyle}>
           <div style={{ flex: 1 }}>
-            <div style={barLabelStyle}>HP: {Math.round(player.health)} / {player.maxHealth}</div>
+            <div style={barLabelStyle}>HP {Math.round(player.health)}</div>
             <div style={barBgStyle}>
               <div style={{ ...barFillStyle, width: `${(player.health / player.maxHealth) * 100}%`, backgroundColor: '#ef4444' }} />
             </div>
           </div>
 
-          <div style={{ flex: 1, marginLeft: '12px' }}>
-            <div style={barLabelStyle}>STAMINA: {Math.round(player.stamina)} / {player.maxStamina}</div>
+          <div style={{ flex: 1, marginLeft: '8px' }}>
+            <div style={barLabelStyle}>STM {Math.round(player.stamina)}</div>
             <div style={barBgStyle}>
               <div style={{ ...barFillStyle, width: `${(player.stamina / player.maxStamina) * 100}%`, backgroundColor: '#3b82f6' }} />
             </div>
           </div>
-        </div>
-
-        {/* Inventory Bar */}
-        <div style={inventoryBarStyle}>
-          {player.inventory.map((item, idx) => (
-            <div
-              key={item.id}
-              style={{
-                ...itemSlotStyle,
-                borderColor: player.equippedSlot === idx ? '#38bdf8' : 'rgba(255,255,255,0.2)'
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', color: '#e2e8f0' }}>{item.name}</div>
-              <div style={{ fontSize: '0.7rem', color: '#38bdf8' }}>x{item.count}</div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -200,7 +187,7 @@ const hudContainerStyle: React.CSSProperties = {
   width: '100vw',
   height: '100vh',
   pointerEvents: 'none',
-  padding: '60px 16px 16px 16px',
+  padding: '16px',
   boxSizing: 'border-box',
   display: 'flex',
   flexDirection: 'column',
@@ -209,14 +196,13 @@ const hudContainerStyle: React.CSSProperties = {
   zIndex: 800
 };
 
-const panelStyle: React.CSSProperties = {
+const compactCornerBadgeStyle: React.CSSProperties = {
   background: 'rgba(15, 23, 42, 0.75)',
   backdropFilter: 'blur(8px)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  borderRadius: '10px',
-  padding: '8px 14px',
-  display: 'inline-block',
-  marginRight: '8px',
+  border: '1px solid rgba(56, 189, 248, 0.3)',
+  borderRadius: '8px',
+  padding: '6px 12px',
+  maxWidth: '360px',
   pointerEvents: 'none'
 };
 
@@ -227,25 +213,25 @@ const toastStyle: React.CSSProperties = {
   transform: 'translateX(-50%)',
   background: 'rgba(220, 38, 38, 0.9)',
   color: '#ffffff',
-  padding: '10px 20px',
-  borderRadius: '30px',
+  padding: '8px 16px',
+  borderRadius: '20px',
   fontWeight: 'bold',
-  fontSize: '1rem',
+  fontSize: '0.9rem',
   pointerEvents: 'none'
 };
 
-const bottomHudStyle: React.CSSProperties = {
+const compactBottomHudStyle: React.CSSProperties = {
   display: 'flex',
-  width: '320px',
+  width: '200px',
   background: 'rgba(15, 23, 42, 0.8)',
-  padding: '10px',
-  borderRadius: '10px',
+  padding: '6px 10px',
+  borderRadius: '8px',
   border: '1px solid rgba(255, 255, 255, 0.1)',
   pointerEvents: 'none'
 };
 
 const barLabelStyle: React.CSSProperties = {
-  fontSize: '0.7rem',
+  fontSize: '0.65rem',
   fontWeight: 'bold',
   color: '#cbd5e1',
   marginBottom: '2px'
@@ -253,35 +239,13 @@ const barLabelStyle: React.CSSProperties = {
 
 const barBgStyle: React.CSSProperties = {
   width: '100%',
-  height: '8px',
+  height: '6px',
   backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  borderRadius: '4px',
+  borderRadius: '3px',
   overflow: 'hidden'
 };
 
 const barFillStyle: React.CSSProperties = {
   height: '100%',
   transition: 'width 0.2s ease'
-};
-
-const inventoryBarStyle: React.CSSProperties = {
-  position: 'absolute',
-  bottom: '16px',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  display: 'flex',
-  gap: '6px',
-  background: 'rgba(15, 23, 42, 0.8)',
-  padding: '6px 10px',
-  borderRadius: '10px',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  pointerEvents: 'none'
-};
-
-const itemSlotStyle: React.CSSProperties = {
-  background: 'rgba(255, 255, 255, 0.05)',
-  border: '2px solid rgba(255, 255, 255, 0.2)',
-  borderRadius: '6px',
-  padding: '4px 8px',
-  textAlign: 'center'
 };

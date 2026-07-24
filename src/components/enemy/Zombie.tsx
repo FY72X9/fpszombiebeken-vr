@@ -61,7 +61,7 @@ export function Zombie({
         dir.normalize();
         const targetRotY = Math.atan2(dir.x, dir.z);
         rotRef.current.y += (targetRotY - rotRef.current.y) * 0.1;
-        const speed = type === 'BOSS_WILLY' ? 1.5 : 2.2;
+        const speed = type === 'BOSS_WILLY' ? 1.4 : type === 'LECTURER' ? 1.8 : 2.0;
         posRef.current.add(dir.multiplyScalar(speed * delta));
       }
     }

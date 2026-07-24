@@ -6,7 +6,10 @@ interface ModeSelectorProps {
 }
 
 export function ModeSelector({ currentMode, onSelectMode }: ModeSelectorProps) {
-  const handleSelectMode = (mode: 'desktop' | 'mobile' | 'vr') => {
+  const handleSelectMode = (e: React.MouseEvent, mode: 'desktop' | 'mobile' | 'vr') => {
+    e.preventDefault();
+    e.stopPropagation();
+
     onSelectMode(mode);
     if (mode === 'vr') {
       try {
@@ -24,7 +27,7 @@ export function ModeSelector({ currentMode, onSelectMode }: ModeSelectorProps) {
           ...modeBtnStyle,
           backgroundColor: currentMode === 'desktop' ? '#0284c7' : 'rgba(15, 23, 42, 0.7)'
         }}
-        onClick={() => handleSelectMode('desktop')}
+        onClick={(e) => handleSelectMode(e, 'desktop')}
       >
         🖥️ Desktop (WASD)
       </button>
@@ -34,7 +37,7 @@ export function ModeSelector({ currentMode, onSelectMode }: ModeSelectorProps) {
           ...modeBtnStyle,
           backgroundColor: currentMode === 'mobile' ? '#0284c7' : 'rgba(15, 23, 42, 0.7)'
         }}
-        onClick={() => handleSelectMode('mobile')}
+        onClick={(e) => handleSelectMode(e, 'mobile')}
       >
         📱 Mobile Touch
       </button>
@@ -44,7 +47,7 @@ export function ModeSelector({ currentMode, onSelectMode }: ModeSelectorProps) {
           ...modeBtnStyle,
           backgroundColor: currentMode === 'vr' ? '#dc2626' : 'rgba(15, 23, 42, 0.7)'
         }}
-        onClick={() => handleSelectMode('vr')}
+        onClick={(e) => handleSelectMode(e, 'vr')}
       >
         🥽 WebXR VR
       </button>

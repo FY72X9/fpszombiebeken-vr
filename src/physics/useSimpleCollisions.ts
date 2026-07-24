@@ -7,61 +7,63 @@ export interface BoundingBox2D {
   maxZ: number;
 }
 
-// Bounding walls for rooms (Outer boundaries and inner obstacles)
-export function getRoomWallColliders(_roomId: string): BoundingBox2D[] {
-  // Base room outer walls bounds (14m x 14m approx)
-  const halfSize = 7.2;
-  const wallThickness = 0.4;
-
-  const outerWalls: BoundingBox2D[] = [
-    // North wall (Z = -halfSize)
-    { minX: -halfSize, maxX: halfSize, minZ: -halfSize - wallThickness, maxZ: -halfSize },
-    // South wall (Z = halfSize)
-    { minX: -halfSize, maxX: halfSize, minZ: halfSize, maxZ: halfSize + wallThickness },
-    // West wall (X = -halfSize)
-    { minX: -halfSize - wallThickness, maxX: -halfSize, minZ: -halfSize, maxZ: halfSize },
-    // East wall (X = halfSize)
-    { minX: halfSize, maxX: halfSize + wallThickness, minZ: -halfSize, maxZ: halfSize },
-  ];
-
-  return outerWalls;
+// Room boundary colliders derived from actual room geometry (RoomLayout width/depth).
+// Each room uses its half-extents minus a small player radius margin.
+// Room sizes: lobby_l1=16×16, kelas=12×12, ruang_direktur=12×10, ruang_dosen=14×10,
+//             stairs=8×12, koridor_l2=16×16, kelas_2x=12×12
+export function getRoomBoundary(roomId: string): { halfX: number; halfZ: number } {
+  switch (roomId) {
+    case 'lobby_l1':
+    case 'entrance':
+      return { halfX: 7.6, halfZ: 7.6 };
+    case 'kelas_1a':
+    case 'kelas_1b':
+    case 'kelas_2a':
+    case 'kelas_2b':
+    case 'kelas_2c':
+      return { halfX: 5.6, halfZ: 5.6 };
+    case 'ruang_direktur':
+      return { halfX: 5.6, halfZ: 4.6 };
+    case 'ruang_dosen':
+      return { halfX: 6.6, halfZ: 4.6 };
+    case 'stairs_l1_to_l2':
+      return { halfX: 3.6, halfZ: 5.6 };
+    case 'koridor_l2':
+      return { halfX: 7.6, halfZ: 7.6 };
+    default:
+      return { halfX: 5.6, halfZ: 5.6 };
+  }
 }
 
-export function checkSphereAABBCollision(
-  position: THREE.Vector3,
-  radius: number,
-  box: BoundingBox2D
-): THREE.Vector3 {
-  // Find closest point on box to sphere center
-  const closestX = Math.max(box.minX, Math.min(position.x, box.maxX));
-  const closestZ = Math.max(box.minZ, Math.min(position.z, box.maxZ));
-
-  const distX = position.x - closestX;
-  const distZ = position.z - closestZ;
-  const distSq = distX * distX + distZ * distZ;
-
-  if (distSq < radius * radius && distSq > 0.00001) {
-    const dist = Math.sqrt(distSq);
-    const overlap = radius - dist;
-    const normX = distX / dist;
-    const normZ = distZ / dist;
-
-    // Push position out of collision box
-    position.x += normX * overlap;
-    position.z += normZ * overlap;
+export function getStairElevation(position: THREE.Vector3, roomId: string): number {
+  if (roomId === 'stairs_l1_to_l2') {
+    // Smooth step climbing from Y=0 at Z=+5.5 (bottom) to Y=3.2 at Z=-5.5 (top)
+    const zBottom = 5.0;
+    const zTop = -5.0;
+    const progress = Math.max(0, Math.min(1, (zBottom - position.z) / (zBottom - zTop)));
+    return progress * 3.2;
   }
-
-  return position;
+  return 0;
 }
 
 export function resolvePlayerCollisions(
   position: THREE.Vector3,
-  radius: number = 0.4,
+  radius: number = 0.45,
   roomId: string = 'lobby_l1'
 ): THREE.Vector3 {
-  const colliders = getRoomWallColliders(roomId);
-  for (const box of colliders) {
-    checkSphereAABBCollision(position, radius, box);
+  const { halfX, halfZ } = getRoomBoundary(roomId);
+
+  // Hard-clamp player inside room boundary walls
+  position.x = Math.max(-halfX + radius, Math.min(halfX - radius, position.x));
+  position.z = Math.max(-halfZ + radius, Math.min(halfZ - radius, position.z));
+
+  // Apply stair climbing elevation
+  const stairY = getStairElevation(position, roomId);
+  if (stairY > 0) {
+    // Lerp camera Y up to stair height + eye-level offset
+    const targetY = stairY + 1.6;
+    position.y += (targetY - position.y) * 0.15;
   }
+
   return position;
 }

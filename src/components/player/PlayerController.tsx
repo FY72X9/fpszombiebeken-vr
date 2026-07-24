@@ -17,42 +17,67 @@ export function PlayerController() {
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const headbobTimer = useRef<number>(0);
 
+  const currentRoom = useGameStore((s) => s.currentRoom);
+  const storePlayerPos = useGameStore((s) => s.player.position);
+  const lastRoomRef = useRef<string>(currentRoom);
+
   const forwardVec = useRef(new THREE.Vector3());
   const rightVec = useRef(new THREE.Vector3());
   const moveDirVec = useRef(new THREE.Vector3());
   const upVec = useRef(new THREE.Vector3(0, 1, 0));
 
+  const hasSyncedRef = useRef(false);
+
+  // Sync camera to store position on initial mount and on every room transition
+  useEffect(() => {
+    // Always sync camera on mount (first render) to match store starting position
+    if (!hasSyncedRef.current || lastRoomRef.current !== currentRoom) {
+      hasSyncedRef.current = true;
+      lastRoomRef.current = currentRoom;
+      camera.position.set(storePlayerPos[0], storePlayerPos[1], storePlayerPos[2]);
+    }
+  }, [currentRoom, storePlayerPos, camera]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (['ControlLeft', 'ControlRight', 'KeyC', 'KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
       keysPressed.current[e.code] = true;
 
       if (e.code === 'KeyE') {
         triggerGlobalInteraction();
       }
 
+      if (e.code === 'KeyC' || e.code === 'ControlLeft' || e.code === 'ControlRight') {
+        const isCrouching = useGameStore.getState().player.isCrouching;
+        useGameStore.getState().setPlayerCrouch(!isCrouching);
+      }
+
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         useGameStore.getState().setPlayerSprint(true);
-      }
-      if (e.code === 'ControlLeft' || e.code === 'ControlRight') {
-        useGameStore.getState().setPlayerCrouch(true);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (['ControlLeft', 'ControlRight', 'KeyC', 'KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
       keysPressed.current[e.code] = false;
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         useGameStore.getState().setPlayerSprint(false);
       }
-      if (e.code === 'ControlLeft' || e.code === 'ControlRight') {
-        useGameStore.getState().setPlayerCrouch(false);
-      }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    window.addEventListener('keyup', handleKeyUp, { capture: true });
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+      window.removeEventListener('keyup', handleKeyUp, { capture: true });
     };
   }, []);
 
@@ -89,7 +114,6 @@ export function PlayerController() {
 
       const isMoving = moveX !== 0 || moveZ !== 0;
 
-      // Realistic Camera Headbobbing
       if (isMoving) {
         const bobFreq = state.player.isSprinting ? 12 : 8;
         const bobAmp = state.player.isSprinting ? 0.05 : 0.025;
@@ -103,7 +127,6 @@ export function PlayerController() {
       }
 
       if (isMoving) {
-        // Robust 100% Direction-Consistent WASD Locomotion using getWorldDirection()
         camera.getWorldDirection(forwardVec.current);
         forwardVec.current.y = 0;
         if (forwardVec.current.lengthSq() > 0.0001) {
@@ -119,12 +142,10 @@ export function PlayerController() {
         if (moveDirVec.current.lengthSq() > 0.0001) {
           moveDirVec.current.normalize();
 
-          // Apply candidate position
           camera.position.x += moveDirVec.current.x * speed * delta;
           camera.position.z += moveDirVec.current.z * speed * delta;
 
-          // AABB Physics Collision Resolution (Prevents clipping through walls & obstacles)
-          resolvePlayerCollisions(camera.position, 0.4, state.currentRoom);
+          resolvePlayerCollisions(camera.position, 0.45, state.currentRoom);
 
           if (state.player.isSprinting) {
             emitNoise({

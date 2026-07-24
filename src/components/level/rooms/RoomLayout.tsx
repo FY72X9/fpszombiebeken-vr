@@ -20,6 +20,7 @@ export function RoomLayout({
 }: RoomLayoutProps) {
   const halfW = width / 2;
   const halfD = depth / 2;
+  const doorW = 2.4; // Doorway cutout width
 
   return (
     <group position={[0, 0, 0]}>
@@ -35,29 +36,49 @@ export function RoomLayout({
         <CelMaterial color="#94a3b8" />
       </mesh>
 
-      {/* 4 Solid Surrounding Room Walls */}
-      {/* North Wall */}
-      <mesh position={[0, height / 2, -halfD]}>
-        <boxGeometry args={[width, height, 0.2]} />
+      {/* 3D Wall Enclosures with Physical Doorway Openings */}
+
+      {/* North Wall (Split with doorway cutout at center) */}
+      <mesh position={[-(halfW - (halfW - doorW / 2) / 2), height / 2, -halfD]}>
+        <boxGeometry args={[halfW - doorW / 2, height, 0.2]} />
         <CelMaterial color={wallColor} />
       </mesh>
-      {/* South Wall */}
-      <mesh position={[0, height / 2, halfD]}>
-        <boxGeometry args={[width, height, 0.2]} />
-        <CelMaterial color={wallColor} />
-      </mesh>
-      {/* West Wall */}
-      <mesh position={[-halfW, height / 2, 0]}>
-        <boxGeometry args={[0.2, height, depth]} />
-        <CelMaterial color={wallColor} />
-      </mesh>
-      {/* East Wall */}
-      <mesh position={[halfW, height / 2, 0]}>
-        <boxGeometry args={[0.2, height, depth]} />
+      <mesh position={[(halfW - (halfW - doorW / 2) / 2), height / 2, -halfD]}>
+        <boxGeometry args={[halfW - doorW / 2, height, 0.2]} />
         <CelMaterial color={wallColor} />
       </mesh>
 
-      {/* Ambient Lighting inside room */}
+      {/* South Wall (Split with doorway cutout at center) */}
+      <mesh position={[-(halfW - (halfW - doorW / 2) / 2), height / 2, halfD]}>
+        <boxGeometry args={[halfW - doorW / 2, height, 0.2]} />
+        <CelMaterial color={wallColor} />
+      </mesh>
+      <mesh position={[(halfW - (halfW - doorW / 2) / 2), height / 2, halfD]}>
+        <boxGeometry args={[halfW - doorW / 2, height, 0.2]} />
+        <CelMaterial color={wallColor} />
+      </mesh>
+
+      {/* West Wall (Split with doorway cutout at center) */}
+      <mesh position={[-halfW, height / 2, -(halfD - (halfD - doorW / 2) / 2)]}>
+        <boxGeometry args={[0.2, height, halfD - doorW / 2]} />
+        <CelMaterial color={wallColor} />
+      </mesh>
+      <mesh position={[-halfW, height / 2, (halfD - (halfD - doorW / 2) / 2)]}>
+        <boxGeometry args={[0.2, height, halfD - doorW / 2]} />
+        <CelMaterial color={wallColor} />
+      </mesh>
+
+      {/* East Wall (Split with doorway cutout at center) */}
+      <mesh position={[halfW, height / 2, -(halfD - (halfD - doorW / 2) / 2)]}>
+        <boxGeometry args={[0.2, height, halfD - doorW / 2]} />
+        <CelMaterial color={wallColor} />
+      </mesh>
+      <mesh position={[halfW, height / 2, (halfD - (halfD - doorW / 2) / 2)]}>
+        <boxGeometry args={[0.2, height, halfD - doorW / 2]} />
+        <CelMaterial color={wallColor} />
+      </mesh>
+
+      {/* Ambient Room Lighting */}
       <ambientLight intensity={0.5} />
       <pointLight position={[0, height - 0.5, 0]} intensity={0.7} color="#fef08a" />
 

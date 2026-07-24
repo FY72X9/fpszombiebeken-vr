@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ROOM_SPAWN_POINTS } from '../constants/roomGraph';
 import { Vector3Tuple } from '../types/game';
 
 export interface InventoryItem {
@@ -139,7 +140,7 @@ interface GameStoreState {
   
   // Actions
   setPhase: (p: GamePhase) => void;
-  setRoom: (id: string) => void;
+  setRoom: (id: string, spawnPos?: Vector3Tuple) => void;
   setPlayerPosition: (p: Vector3Tuple) => void;
   setPlayerRotation: (r: Vector3Tuple) => void;
   setPlayerHealth: (h: number) => void;
@@ -172,7 +173,7 @@ interface GameStoreState {
 }
 
 const initialPlayerState: PlayerState = {
-  position: [0, 1.6, 0],
+  position: [0, 1.6, 2.0],  // lobby_l1 safe interior spawn
   rotation: [0, 0, 0],
   health: 100,
   maxHealth: 100,
@@ -226,7 +227,7 @@ const initialInputState = {
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
   phase: 'menu',
-  currentRoom: 'kelas_2a',
+  currentRoom: 'lobby_l1',
   saveData: initialSaveData,
   showLoading: false,
   
@@ -280,7 +281,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   playerInitialized: false,
   
   setPhase: (p) => set({ phase: p }),
-  setRoom: (id) => set({ currentRoom: id }),
+  setRoom: (id, spawnPos) => {
+    const targetPos = spawnPos || ROOM_SPAWN_POINTS[id] || [0, 1.6, 4.0];
+    set((s) => ({
+      currentRoom: id,
+      player: { ...s.player, position: targetPos }
+    }));
+  },
   setPlayerPosition: (p) => set((s) => ({ player: { ...s.player, position: p } })),
   setPlayerRotation: (r) => set((s) => ({ player: { ...s.player, rotation: r } })),
   setPlayerHealth: (h) => set((s) => ({ player: { ...s.player, health: Math.min(s.player.maxHealth, Math.max(0, h)) } })),
@@ -339,7 +346,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // Initialize Bina's starter items based on core game design
     const initialState = {
       phase: 'intro' as GamePhase,
-      currentRoom: 'kelas_2a',
+      currentRoom: 'lobby_l1',
       player: initialPlayerState,
       nusa: initialNusaState,
       cure: initialCureState,

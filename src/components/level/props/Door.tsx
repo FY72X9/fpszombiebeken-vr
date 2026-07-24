@@ -4,6 +4,7 @@ import { emitNoise } from '../../../systems/NoiseSystem';
 import { NOISE_CONFIG } from '../../../constants/gameConfig';
 import { RoomId } from '../../../types/game';
 import { registerInteractiveDoor, unregisterInteractiveDoor } from '../../interaction/InteractionSystem';
+import { DOOR_TRANSITION_SPAWNS } from '../../../constants/roomGraph';
 
 interface DoorProps {
   position: [number, number, number];
@@ -15,26 +16,30 @@ interface DoorProps {
 export function Door({ position, rotationY = 0, targetRoom, label = 'Pintu' }: DoorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const setRoom = useGameStore((s) => s.setRoom);
+  const currentRoom = useGameStore((s) => s.currentRoom);
 
   useEffect(() => {
     const doorId = `door_${position.join('_')}`;
+    const customSpawn = DOOR_TRANSITION_SPAWNS[currentRoom]?.[targetRoom];
+
     registerInteractiveDoor({
       id: doorId,
       position,
       targetRoom,
       label,
-      action: () => setRoom(targetRoom)
+      action: () => setRoom(targetRoom, customSpawn)
     });
 
     return () => {
       unregisterInteractiveDoor(doorId);
     };
-  }, [position, targetRoom, label, setRoom]);
+  }, [position, targetRoom, label, setRoom, currentRoom]);
 
   const toggleDoor = (e: any) => {
     e.stopPropagation();
     setIsOpen(!isOpen);
-    setRoom(targetRoom);
+    const customSpawn = DOOR_TRANSITION_SPAWNS[currentRoom]?.[targetRoom];
+    setRoom(targetRoom, customSpawn);
 
     emitNoise({
       position,

@@ -54,7 +54,7 @@ export function InjectionSystem() {
       else if (enemy.id.includes('gatot')) state.setCured('gatot');
       else state.incrementStudentsCured();
 
-      state.setDetectionMessage(`${enemy.id.toUpperCase()} berhasil disembuhkan dengan Antidot!`);
+      state.setDetectionMessage(`[✓ SUKSES] ${enemy.id.toUpperCase()} telah disembuhkan dengan Antidot!`);
       setTimeout(() => state.setDetectionMessage(null), 3000);
     }
   });
@@ -62,11 +62,16 @@ export function InjectionSystem() {
   if (!currentInjectionProgress || progressRatio <= 0) return null;
 
   return (
-    <group position={[0, 2.5, 0]}>
-      {/* 3D Antidote Injection Progress Indicator */}
-      <mesh>
-        <torusGeometry args={[0.3, 0.04, 16, 32, progressRatio * Math.PI * 2]} />
+    <group position={[0, 2.3, 0]}>
+      {/* 3D High-Visibility Glowing Antidote Injection Progress Ring */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.45, 0.06, 16, 32, progressRatio * Math.PI * 2]} />
         <meshBasicMaterial color="#22c55e" />
+      </mesh>
+      {/* Glowing Inner Core */}
+      <mesh>
+        <sphereGeometry args={[0.15, 12, 12]} />
+        <meshBasicMaterial color="#4ade80" />
       </mesh>
     </group>
   );
