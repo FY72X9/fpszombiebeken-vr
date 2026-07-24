@@ -21,6 +21,10 @@ export function PlayerController() {
   const vrTriggerPressedRef = useRef(false);
   const vrSnapRef = useRef(false);
 
+  // Persistent VR World Position & Yaw refs
+  const vrWorldPos = useRef(new THREE.Vector3(0, 1.6, 2.0));
+  const vrWorldYaw = useRef<number>(Math.PI);
+
   const currentRoom = useGameStore((s) => s.currentRoom);
   const lastRoomRef = useRef<string>(currentRoom);
 
@@ -39,12 +43,34 @@ export function PlayerController() {
       const statePlayer = useGameStore.getState().player;
       const [px, py, pz] = statePlayer.position;
       const [, ry] = statePlayer.rotation;
+
+      vrWorldPos.current.set(px, py, pz);
+      vrWorldYaw.current = ry;
+
       camera.position.set(px, py, pz);
       camera.rotation.order = 'YXZ';
       camera.rotation.set(0, ry, 0);
     }
   }, [currentRoom, camera]);
 
+  // Handle WebXR session events & button listeners
+  useEffect(() => {
+    if (!session) return;
+
+    const handleSelectStart = () => {
+      triggerGlobalInteraction();
+    };
+
+    session.addEventListener('selectstart', handleSelectStart);
+    session.addEventListener('select', handleSelectStart);
+
+    return () => {
+      session.removeEventListener('selectstart', handleSelectStart);
+      session.removeEventListener('select', handleSelectStart);
+    };
+  }, [session]);
+
+  // Desktop keyboard listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['ControlLeft', 'ControlRight', 'KeyC', 'KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'Space'].includes(e.code)) {
@@ -93,18 +119,18 @@ export function PlayerController() {
     if (state.phase !== 'playing') return;
 
     if (isPresenting && session) {
-      // ── WebXR Standard VR Controller Input Handler (MetaQuest / OpenXR Touch Controllers) ──
+      // ── Full Interactive WebXR VR Controller Handler (Moonrider style smooth locomotion) ──
       for (const source of session.inputSources) {
         if (!source.gamepad) continue;
         const gp = source.gamepad;
 
-        // Extract thumbstick values: axes[0]/[1] are standard OpenXR Touch Thumbsticks
-        const rawAxisX = gp.axes[0] ?? (Math.abs(gp.axes[2] ?? 0) > 0.05 ? gp.axes[2] : 0);
-        const rawAxisZ = gp.axes[1] ?? (Math.abs(gp.axes[3] ?? 0) > 0.05 ? gp.axes[3] : 0);
+        // Axes: [0]=X, [1]=Y (Standard OpenXR Touch Controller Thumbstick)
+        const axisX = gp.axes[0] ?? (Math.abs(gp.axes[2] ?? 0) > 0.08 ? gp.axes[2] : 0);
+        const axisZ = gp.axes[1] ?? (Math.abs(gp.axes[3] ?? 0) > 0.08 ? gp.axes[3] : 0);
 
         if (source.handedness === 'left') {
           // Left Thumbstick Smooth Locomotion
-          if (Math.abs(rawAxisX) > 0.12 || Math.abs(rawAxisZ) > 0.12) {
+          if (Math.abs(axisX) > 0.12 || Math.abs(axisZ) > 0.12) {
             camera.getWorldDirection(forwardVec.current);
             forwardVec.current.y = 0;
             if (forwardVec.current.lengthSq() > 0.0001) forwardVec.current.normalize();
@@ -112,33 +138,32 @@ export function PlayerController() {
             rightVec.current.crossVectors(forwardVec.current, upVec.current).normalize();
 
             moveDirVec.current.set(0, 0, 0);
-            moveDirVec.current.addScaledVector(forwardVec.current, -rawAxisZ);
-            moveDirVec.current.addScaledVector(rightVec.current, rawAxisX);
+            moveDirVec.current.addScaledVector(forwardVec.current, -axisZ);
+            moveDirVec.current.addScaledVector(rightVec.current, axisX);
 
             if (moveDirVec.current.lengthSq() > 0.0001) {
               moveDirVec.current.normalize();
               const speed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : PLAYER_CONFIG.moveSpeed.walk;
-              camera.position.x += moveDirVec.current.x * speed * delta;
-              camera.position.z += moveDirVec.current.z * speed * delta;
+              vrWorldPos.current.x += moveDirVec.current.x * speed * delta;
+              vrWorldPos.current.z += moveDirVec.current.z * speed * delta;
 
-              resolvePlayerCollisions(camera.position, 0.45, state.currentRoom);
+              resolvePlayerCollisions(vrWorldPos.current, 0.45, state.currentRoom);
             }
           }
         } else if (source.handedness === 'right') {
           // Right Thumbstick Snap Turn (45 degrees)
-          if (Math.abs(rawAxisX) > 0.5) {
+          if (Math.abs(axisX) > 0.5) {
             if (!vrSnapRef.current) {
               vrSnapRef.current = true;
-              const angle = rawAxisX > 0 ? -Math.PI / 4 : Math.PI / 4;
-              camera.rotation.y += angle;
+              vrWorldYaw.current += axisX > 0 ? -Math.PI / 4 : Math.PI / 4;
             }
           } else {
             vrSnapRef.current = false;
           }
         }
 
-        // Trigger (buttons[0]), Grip (buttons[1]), or Primary Button (buttons[4]/[5]) on EITHER controller
-        const isBtnPressed = gp.buttons.some((b) => b && (b.pressed || b.value > 0.5));
+        // VR Buttons: A (right 4), B (right 5), X (left 4), Y (left 5), Trigger (0), Grip (1)
+        const isBtnPressed = gp.buttons.some((b, idx) => [0, 1, 4, 5].includes(idx) && b && (b.pressed || b.value > 0.5));
         if (isBtnPressed) {
           if (!vrTriggerPressedRef.current) {
             vrTriggerPressedRef.current = true;
@@ -149,11 +174,29 @@ export function PlayerController() {
         }
       }
 
+      // Update camera position to match accumulated VR world position
+      camera.position.set(vrWorldPos.current.x, vrWorldPos.current.y, vrWorldPos.current.z);
+
+      // WebXR Reference Space Offset Sync (Standard WebXR Offset Transform)
+      const baseRef = (gl.xr as any).getReferenceSpace?.();
+      if (baseRef && typeof (window as any).XRRigidTransform === 'function') {
+        try {
+          const transform = new (window as any).XRRigidTransform(
+            { x: -vrWorldPos.current.x, y: 0, z: -vrWorldPos.current.z },
+            { x: 0, y: Math.sin(-vrWorldYaw.current / 2), z: 0, w: Math.cos(-vrWorldYaw.current / 2) }
+          );
+          const offsetRef = baseRef.getOffsetReferenceSpace(transform);
+          (gl.xr as any).setReferenceSpace(offsetRef);
+        } catch (e) {
+          // Ignore
+        }
+      }
+
       useGameStore.setState((s) => ({
         player: {
           ...s.player,
-          position: [camera.position.x, camera.position.y, camera.position.z],
-          rotation: [camera.rotation.x, camera.rotation.y, camera.rotation.z]
+          position: [vrWorldPos.current.x, vrWorldPos.current.y, vrWorldPos.current.z],
+          rotation: [camera.rotation.x, vrWorldYaw.current, camera.rotation.z]
         }
       }));
     } else {
