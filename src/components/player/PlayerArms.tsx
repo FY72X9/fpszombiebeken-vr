@@ -1,25 +1,39 @@
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useRef, useEffect } from 'react';
+import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../stores/GameStore';
 import { CelMaterial } from '../../shaders/CelMaterial';
 
 export function PlayerArms() {
+  const { camera } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const player = useGameStore((s) => s.player);
   const isPresenting = player.isInVR;
 
-  useFrame(({ camera, clock }) => {
+  const targetPos = useRef(new THREE.Vector3(0, 0, 0));
+
+  useEffect(() => {
+    if (!groupRef.current || isPresenting) return;
+    const armsGroup = groupRef.current;
+    camera.add(armsGroup);
+    armsGroup.position.set(0, 0, 0);
+    armsGroup.rotation.set(0, 0, 0);
+
+    return () => {
+      camera.remove(armsGroup);
+    };
+  }, [camera, isPresenting]);
+
+  useFrame(({ clock }, delta) => {
     if (!groupRef.current || isPresenting) return;
 
-    // Attach arms group to camera transform
-    groupRef.current.position.copy(camera.position);
-    groupRef.current.quaternion.copy(camera.quaternion);
-
-    // Subtle idle breathing sway for hands
+    // Subtle idle breathing sway in camera-local space (no world lag)
     const t = clock.getElapsedTime();
-    groupRef.current.position.y += Math.sin(t * 2) * 0.005;
-    groupRef.current.position.x += Math.cos(t * 1.5) * 0.003;
+    const idleY = Math.sin(t * 2) * 0.003;
+    const idleX = Math.cos(t * 1.5) * 0.002;
+
+    targetPos.current.set(idleX, idleY, 0);
+    groupRef.current.position.lerp(targetPos.current, Math.min(1, delta * 15));
   });
 
   if (isPresenting) return null;

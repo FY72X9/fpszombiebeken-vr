@@ -241,6 +241,21 @@ export function PlayerController() {
       }));
     } else {
       // ── Non-VR Desktop & Mobile Controls ──
+      const inputLook = state.input.lookDelta;
+      if (inputLook && (inputLook[0] !== 0 || inputLook[1] !== 0)) {
+        const sensitivity = 0.0035;
+        const [dx, dy] = inputLook;
+
+        camera.rotation.order = 'YXZ';
+        camera.rotation.y -= dx * sensitivity;
+        const newPitch = camera.rotation.x - dy * sensitivity;
+        camera.rotation.x = Math.max(-1.4, Math.min(1.4, newPitch));
+        camera.rotation.z = 0;
+        camera.quaternion.setFromEuler(camera.rotation);
+
+        useGameStore.getState().updateInput({ lookDelta: null });
+      }
+
       const inputMove = state.input.move;
       let moveX = 0;
       let moveZ = 0;
@@ -263,15 +278,15 @@ export function PlayerController() {
       const isMoving = moveX !== 0 || moveZ !== 0;
 
       if (isMoving) {
-        const bobFreq = state.player.isSprinting ? 12 : 8;
-        const bobAmp = state.player.isSprinting ? 0.05 : 0.025;
+        const bobFreq = state.player.isSprinting ? 8 : 5.5;
+        const bobAmp = state.player.isSprinting ? 0.02 : 0.01;
         headbobTimer.current += delta * bobFreq;
 
-        const bobY = Math.sin(headbobTimer.current) * bobAmp;
-        camera.position.y = effectiveBaseHeight + bobY;
+        const targetY = effectiveBaseHeight + Math.sin(headbobTimer.current) * bobAmp;
+        camera.position.y += (targetY - camera.position.y) * Math.min(1, delta * 12);
       } else {
         headbobTimer.current = 0;
-        camera.position.y += (effectiveBaseHeight - camera.position.y) * 0.15;
+        camera.position.y += (effectiveBaseHeight - camera.position.y) * Math.min(1, delta * 12);
       }
 
       if (isMoving) {

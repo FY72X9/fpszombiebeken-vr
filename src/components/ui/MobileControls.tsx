@@ -9,26 +9,30 @@ export function MobileControls({ active }: { active: boolean }) {
   const isSprinting = useGameStore((s) => s.player.isSprinting);
   const isCrouching = useGameStore((s) => s.player.isCrouching);
 
-  const [joystickActive, setJoystickActive] = useState(false);
   const [joystickPos, setJoystickPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const touchStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const joystickActiveRef = useRef(false);
+  const joystickStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const lookTouchLastRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lookActiveRef = useRef(false);
 
   if (!active) return null;
 
+  // ── Left Virtual Joystick Movement ──
   const handleJoystickStart = (e: React.TouchEvent | React.MouseEvent) => {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    touchStartRef.current = { x: clientX, y: clientY };
-    setJoystickActive(true);
+    joystickStartRef.current = { x: clientX, y: clientY };
+    joystickActiveRef.current = true;
   };
 
   const handleJoystickMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (!joystickActive) return;
+    if (!joystickActiveRef.current) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
 
-    const dx = clientX - touchStartRef.current.x;
-    const dy = clientY - touchStartRef.current.y;
+    const dx = clientX - joystickStartRef.current.x;
+    const dy = clientY - joystickStartRef.current.y;
     const dist = Math.hypot(dx, dy);
     const maxDist = 50;
 
@@ -43,64 +47,132 @@ export function MobileControls({ active }: { active: boolean }) {
   };
 
   const handleJoystickEnd = () => {
-    setJoystickActive(false);
+    joystickActiveRef.current = false;
     setJoystickPos({ x: 0, y: 0 });
     updateInput({ move: null });
   };
 
+  // ── Right Touch Look 360 Camera Drag ──
+  const handleLookStart = (e: React.TouchEvent | React.MouseEvent) => {
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    lookTouchLastRef.current = { x: clientX, y: clientY };
+    lookActiveRef.current = true;
+  };
+
+  const handleLookMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!lookActiveRef.current) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const dx = clientX - lookTouchLastRef.current.x;
+    const dy = clientY - lookTouchLastRef.current.y;
+    lookTouchLastRef.current = { x: clientX, y: clientY };
+
+    if (dx !== 0 || dy !== 0) {
+      updateInput({ lookDelta: [dx, dy] });
+    }
+  };
+
+  const handleLookEnd = () => {
+    lookActiveRef.current = false;
+    updateInput({ lookDelta: null });
+  };
+
   return (
-    <div style={mobileControlsContainerStyle}>
+    <>
+      {/* Right Side Touch Look Zone for 360 degree camera panning */}
       <div
-        style={joystickBaseStyle}
-        onTouchStart={handleJoystickStart}
-        onTouchMove={handleJoystickMove}
-        onTouchEnd={handleJoystickEnd}
-        onMouseDown={handleJoystickStart}
-        onMouseMove={handleJoystickMove}
-        onMouseUp={handleJoystickEnd}
+        style={touchLookZoneStyle}
+        onTouchStart={handleLookStart}
+        onTouchMove={handleLookMove}
+        onTouchEnd={handleLookEnd}
+        onTouchCancel={handleLookEnd}
+        onMouseDown={handleLookStart}
+        onMouseMove={handleLookMove}
+        onMouseUp={handleLookEnd}
       >
+        <div style={touchLookHintStyle}>👁️ Swipe 360° View</div>
+      </div>
+
+      <div style={mobileControlsContainerStyle}>
         <div
-          style={{
-            ...joystickKnobStyle,
-            transform: `translate(${joystickPos.x}px, ${joystickPos.y}px)`
-          }}
-        />
+          style={joystickBaseStyle}
+          onTouchStart={handleJoystickStart}
+          onTouchMove={handleJoystickMove}
+          onTouchEnd={handleJoystickEnd}
+          onTouchCancel={handleJoystickEnd}
+          onMouseDown={handleJoystickStart}
+          onMouseMove={handleJoystickMove}
+          onMouseUp={handleJoystickEnd}
+        >
+          <div
+            style={{
+              ...joystickKnobStyle,
+              transform: `translate(${joystickPos.x}px, ${joystickPos.y}px)`
+            }}
+          />
+        </div>
+
+        <div style={actionButtonsGroupStyle}>
+          <button
+            style={{
+              ...btnStyle,
+              backgroundColor: '#0284c7'
+            }}
+            onClick={() => triggerGlobalInteraction()}
+          >
+            [E] INTERAKSI
+          </button>
+
+          <button
+            style={{
+              ...btnStyle,
+              backgroundColor: isSprinting ? '#dc2626' : 'rgba(15, 23, 42, 0.8)'
+            }}
+            onClick={() => setPlayerSprint(!isSprinting)}
+          >
+            LARI
+          </button>
+
+          <button
+            style={{
+              ...btnStyle,
+              backgroundColor: isCrouching ? '#3b82f6' : 'rgba(15, 23, 42, 0.8)'
+            }}
+            onClick={() => setPlayerCrouch(!isCrouching)}
+          >
+            JONGKOK
+          </button>
+        </div>
       </div>
-
-      <div style={actionButtonsGroupStyle}>
-        <button
-          style={{
-            ...btnStyle,
-            backgroundColor: '#0284c7'
-          }}
-          onClick={() => triggerGlobalInteraction()}
-        >
-          [E] INTERAKSI
-        </button>
-
-        <button
-          style={{
-            ...btnStyle,
-            backgroundColor: isSprinting ? '#dc2626' : 'rgba(15, 23, 42, 0.8)'
-          }}
-          onClick={() => setPlayerSprint(!isSprinting)}
-        >
-          LARI
-        </button>
-
-        <button
-          style={{
-            ...btnStyle,
-            backgroundColor: isCrouching ? '#3b82f6' : 'rgba(15, 23, 42, 0.8)'
-          }}
-          onClick={() => setPlayerCrouch(!isCrouching)}
-        >
-          JONGKOK
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
+
+const touchLookZoneStyle: React.CSSProperties = {
+  position: 'fixed',
+  top: 0,
+  right: 0,
+  width: '55vw',
+  height: '100vh',
+  zIndex: 850,
+  pointerEvents: 'auto',
+  touchAction: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center'
+};
+
+const touchLookHintStyle: React.CSSProperties = {
+  color: 'rgba(255, 255, 255, 0.25)',
+  fontSize: '0.75rem',
+  fontWeight: 'bold',
+  letterSpacing: '1px',
+  pointerEvents: 'none',
+  userSelect: 'none',
+  textTransform: 'uppercase'
+};
 
 const mobileControlsContainerStyle: React.CSSProperties = {
   position: 'fixed',
@@ -112,7 +184,8 @@ const mobileControlsContainerStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'flex-end',
   pointerEvents: 'none',
-  zIndex: 900
+  zIndex: 900,
+  boxSizing: 'border-box'
 };
 
 const joystickBaseStyle: React.CSSProperties = {

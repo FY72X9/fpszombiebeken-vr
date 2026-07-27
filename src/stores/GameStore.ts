@@ -85,6 +85,7 @@ interface GameStoreState {
   // Input state
   input: {
     move: Vector3Tuple | null;
+    lookDelta?: [number, number] | null;
     sprint: boolean;
     crouch: boolean;
     attack: boolean;
@@ -224,6 +225,7 @@ const initialSaveData = {
 
 const initialInputState = {
   move: null,
+  lookDelta: null,
   sprint: false,
   crouch: false,
   attack: false,
