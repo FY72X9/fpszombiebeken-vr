@@ -2,29 +2,9 @@ import { useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../stores/GameStore';
-import { RoomId } from '../../types/game';
 import { activeEnemiesMap, EnemyEntity } from '../../systems/DetectionSystem';
 import { startInjection } from '../../systems/InjectionSystem';
-
-export interface InteractiveTarget {
-  id: string;
-  position: [number, number, number];
-  targetRoom?: RoomId;
-  label: string;
-  action: () => void;
-}
-
-const registeredDoorsMap = new Map<string, InteractiveTarget>();
-
-export function registerInteractiveDoor(target: InteractiveTarget) {
-  registeredDoorsMap.set(target.id, target);
-}
-
-export function unregisterInteractiveDoor(id: string) {
-  registeredDoorsMap.delete(id);
-}
-
-export let triggerGlobalInteraction = () => {};
+import { registeredDoorsMap, setTriggerGlobalInteraction, InteractiveTarget } from '../../systems/InteractionManager';
 
 export function InteractionSystem() {
   const [promptText, setPromptText] = useState<string | null>(null);
@@ -85,7 +65,7 @@ export function InteractionSystem() {
       setPromptText(`[E / Klik Kiri / VR Trigger] Suntik Antidot: ${zombieName}`);
 
       const targetZombieId = (nearestZombie as EnemyEntity).id;
-      triggerGlobalInteraction = () => {
+      setTriggerGlobalInteraction(() => {
         const hasAntidote = useGameStore.getState().player.inventory.some((i) => i.type === 'antidote' && i.count > 0);
         if (hasAntidote) {
           startInjection(targetZombieId);
@@ -93,20 +73,20 @@ export function InteractionSystem() {
           setDetectionMessage('Membutuhkan Antidot Syringe!');
           setTimeout(() => setDetectionMessage(null), 2000);
         }
-      };
+      });
     } else if (nearestDoor) {
       const label = (nearestDoor as InteractiveTarget).label;
       const action = (nearestDoor as InteractiveTarget).action;
 
       setPromptText(`[E / Klik Kiri / VR Trigger] Masuk ${label}`);
-      triggerGlobalInteraction = () => {
+      setTriggerGlobalInteraction(() => {
         action();
         setDetectionMessage(`Berpindah ke: ${label}`);
         setTimeout(() => setDetectionMessage(null), 2000);
-      };
+      });
     } else {
       if (promptText !== null) setPromptText(null);
-      triggerGlobalInteraction = () => {};
+      setTriggerGlobalInteraction(() => {});
     }
   });
 

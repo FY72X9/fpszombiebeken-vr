@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { useGameStore } from '../../stores/GameStore';
 import { PLAYER_CONFIG } from '../../constants/gameConfig';
 import { emitNoise } from '../../systems/NoiseSystem';
-import { triggerGlobalInteraction } from '../interaction/InteractionSystem';
+import { triggerGlobalInteraction } from '../../systems/InteractionManager';
 import { resolvePlayerCollisions, getStairElevation } from '../../physics/useSimpleCollisions';
 
 export function PlayerController() {

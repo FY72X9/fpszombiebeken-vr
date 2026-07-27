@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../../../stores/GameStore';
 import { RoomId } from '../../../types/game';
-import { registerInteractiveDoor, unregisterInteractiveDoor } from '../../interaction/InteractionSystem';
+import { registerInteractiveDoor, unregisterInteractiveDoor } from '../../../systems/InteractionManager';
 import { DOOR_TRANSITION_SPAWNS } from '../../../constants/roomGraph';
 import { emitNoise } from '../../../systems/NoiseSystem';
 import { NOISE_CONFIG } from '../../../constants/gameConfig';
@@ -19,7 +19,8 @@ export function Door({ position, rotationY = 0, targetRoom, label = 'Pintu' }: D
   const currentRoom = useGameStore((s) => s.currentRoom);
 
   const doTransition = () => {
-    const entry = DOOR_TRANSITION_SPAWNS[currentRoom]?.[targetRoom];
+    const activeRoom = useGameStore.getState().currentRoom;
+    const entry = DOOR_TRANSITION_SPAWNS[activeRoom]?.[targetRoom];
     const spawnPos = entry ? [entry[0], entry[1], entry[2]] as [number, number, number] : undefined;
     const facingY = entry ? entry[3] : undefined;
     setRoom(targetRoom, spawnPos, facingY);

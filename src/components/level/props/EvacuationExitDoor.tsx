@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../../../stores/GameStore';
-import { registerInteractiveDoor, unregisterInteractiveDoor } from '../../interaction/InteractionSystem';
+import { registerInteractiveDoor, unregisterInteractiveDoor } from '../../../systems/InteractionManager';
 
 interface EvacuationExitDoorProps {
   position: [number, number, number];

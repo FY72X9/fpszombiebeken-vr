@@ -7,7 +7,7 @@ export function Stairs() {
     <RoomLayout
       width={8}
       depth={12}
-      height={3.8}
+      height={6.5}
       floorColor="#64748b"
       wallColor="#94a3b8"
       accentColor="#334155"
@@ -38,7 +38,7 @@ export function Stairs() {
       </mesh>
 
       {/* Stair Landing Wall Sign */}
-      <mesh position={[0, 3.2, -5.85]}>
+      <mesh position={[0, 6.0, -5.85]}>
         <boxGeometry args={[2.5, 0.4, 0.04]} />
         <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.5} />
       </mesh>

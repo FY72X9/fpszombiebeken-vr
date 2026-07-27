@@ -215,7 +215,7 @@ const initialCureState: CureState = {
 };
 
 const initialSaveData = {
-  checkpointRoom: 'kelas_2a',
+  checkpointRoom: 'lobby_l1',
   timestamp: Date.now(),
   playerState: initialPlayerState,
   nusaState: initialNusaState,

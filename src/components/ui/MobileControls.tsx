@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useGameStore } from '../../stores/GameStore';
-import { triggerGlobalInteraction } from '../interaction/InteractionSystem';
+import { triggerGlobalInteraction } from '../../systems/InteractionManager';
 
 export function MobileControls({ active }: { active: boolean }) {
   const updateInput = useGameStore((s) => s.updateInput);
