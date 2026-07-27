@@ -32,6 +32,20 @@ export function getDamageFlashRatio(): number {
   return damageFlashRatio;
 }
 
+export function resetDetectionSystem() {
+  globalIFrameTimer = 0;
+  damageFlashRatio = 0;
+  outOfCombatTimer = 0;
+  activeEnemiesMap.forEach((enemy) => {
+    enemy.state = 'idle';
+    enemy.attackCooldown = 0;
+    enemy.searchTimer = 0;
+    enemy.stunTimer = 0;
+    enemy.isInjecting = false;
+    enemy.injectionProgress = 0;
+  });
+}
+
 export function triggerPlayerDamage(amount: number, attackerName: string = 'Zombie') {
   if (globalIFrameTimer > 0) return; // Invulnerability protection
 

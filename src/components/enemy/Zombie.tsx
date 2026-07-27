@@ -58,12 +58,27 @@ export function Zombie({
     if (curedZombieIds.includes(id)) {
       entityRef.current.state = 'cured';
       setActiveState('cured');
+    } else {
+      entityRef.current.state = 'idle';
+      entityRef.current.attackCooldown = 0;
+      entityRef.current.searchTimer = 0;
+      entityRef.current.stunTimer = 0;
+      entityRef.current.isInjecting = false;
+      entityRef.current.injectionProgress = 0;
+      posRef.current.set(...initialPosition);
+      rotRef.current.set(0, 0, 0);
+      patrolTargetRef.current.set(...initialPosition);
+      if (groupRef.current) {
+        groupRef.current.position.set(...initialPosition);
+        groupRef.current.rotation.set(0, 0, 0);
+      }
+      setActiveState('idle');
     }
     activeEnemiesMap.set(id, entityRef.current);
     return () => {
       activeEnemiesMap.delete(id);
     };
-  }, [id, curedZombieIds]);
+  }, [id, curedZombieIds, initialPosition]);
 
   useFrame((_, delta) => {
     const enemy = entityRef.current;

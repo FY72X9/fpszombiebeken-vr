@@ -194,11 +194,11 @@ export function UIManager() {
             Bina tertangkap zombie dan tidak dapat melanjutkan misi.<br />
             Coba lagi dan bergerak lebih diam-diam!
           </p>
-          <button onClick={() => { cancelInjection(); reset(); setPhase('playing'); }} style={startBtnStyle}>
-            🔄 Coba Lagi
+          <button onClick={() => { cancelInjection(); reset(); }} style={startBtnStyle}>
+            🔄 Coba Lagi (Kembali ke Intro)
           </button>
-          <button onClick={() => { cancelInjection(); reset(); setPhase('menu'); }} style={{ ...tabBtnStyle, marginTop: '10px', width: '100%' }}>
-            Menu Utama
+          <button onClick={() => { cancelInjection(); reset(); }} style={{ ...tabBtnStyle, marginTop: '10px', width: '100%' }}>
+            🏠 Menu Utama
           </button>
         </div>
       </div>

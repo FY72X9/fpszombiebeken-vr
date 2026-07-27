@@ -27,7 +27,9 @@ export function PlayerController() {
   const vrYaw = useRef<number>(Math.PI);
 
   const currentRoom = useGameStore((s) => s.currentRoom);
+  const phase = useGameStore((s) => s.phase);
   const lastRoomRef = useRef<string>(currentRoom);
+  const lastPhaseRef = useRef<string>(phase);
 
   const forwardVec = useRef(new THREE.Vector3());
   const rightVec = useRef(new THREE.Vector3());
@@ -36,11 +38,16 @@ export function PlayerController() {
 
   const hasSyncedRef = useRef(false);
 
-  // Sync player position & facing on initial mount and on every room transition
+  // Sync player position & facing on initial mount, room transition, or restarting game (phase -> menu/playing)
   useEffect(() => {
-    if (!hasSyncedRef.current || lastRoomRef.current !== currentRoom) {
+    const isRoomChanged = lastRoomRef.current !== currentRoom;
+    const isPhaseChanged = phase !== lastPhaseRef.current && (phase === 'playing' || phase === 'menu');
+
+    if (!hasSyncedRef.current || isRoomChanged || isPhaseChanged) {
       hasSyncedRef.current = true;
       lastRoomRef.current = currentRoom;
+      lastPhaseRef.current = phase;
+
       const statePlayer = useGameStore.getState().player;
       const [px, py, pz] = statePlayer.position;
       const [, ry] = statePlayer.rotation;
@@ -58,8 +65,10 @@ export function PlayerController() {
       camera.rotation.set(0, ry, 0);
       camera.quaternion.setFromEuler(camera.rotation);
       camera.updateMatrixWorld(true);
+    } else {
+      lastPhaseRef.current = phase;
     }
-  }, [currentRoom, camera]);
+  }, [currentRoom, phase, camera]);
 
   // WebXR Session Button Listeners (selectstart / squeezestart)
   useEffect(() => {

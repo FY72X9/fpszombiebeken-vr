@@ -28,16 +28,16 @@ export function PlayerArms() {
 
   return (
     <group ref={groupRef}>
-      {/* Right Arm Holding Item */}
+      {/* Right Arm Holding Item (Roblox R6 Blocky Style) */}
       <group position={[0.35, -0.3, -0.5]} rotation={[0.2, -0.3, 0]}>
-        {/* Sleeve & Arm */}
-        <mesh position={[0, -0.2, 0.1]} rotation={[0.4, 0, 0]}>
-          <cylinderGeometry args={[0.06, 0.07, 0.4]} />
+        {/* Roblox Blocky Sleeve / Forearm */}
+        <mesh position={[0, -0.18, 0.08]} rotation={[0.4, 0, 0]}>
+          <boxGeometry args={[0.11, 0.32, 0.11]} />
           <CelMaterial color="#1e3a8a" />
         </mesh>
-        {/* Hand */}
-        <mesh position={[0, 0.02, -0.08]}>
-          <sphereGeometry args={[0.05, 8, 8]} />
+        {/* Roblox Blocky Hand */}
+        <mesh position={[0, 0.01, -0.07]}>
+          <boxGeometry args={[0.095, 0.095, 0.095]} />
           <CelMaterial color="#fde047" />
         </mesh>
 
@@ -84,19 +84,21 @@ export function PlayerArms() {
         )}
       </group>
 
-      {/* Left Arm & Wrist Watch */}
+      {/* Left Arm & Wrist Watch (Roblox R6 Blocky Style) */}
       <group position={[-0.35, -0.32, -0.5]} rotation={[0.3, 0.3, 0]}>
-        <mesh position={[0, -0.2, 0.1]} rotation={[0.4, 0, 0]}>
-          <cylinderGeometry args={[0.06, 0.07, 0.4]} />
+        {/* Roblox Blocky Sleeve / Forearm */}
+        <mesh position={[0, -0.18, 0.08]} rotation={[0.4, 0, 0]}>
+          <boxGeometry args={[0.11, 0.32, 0.11]} />
           <CelMaterial color="#1e3a8a" />
         </mesh>
-        <mesh position={[0, 0.02, -0.08]}>
-          <sphereGeometry args={[0.05, 8, 8]} />
+        {/* Roblox Blocky Hand */}
+        <mesh position={[0, 0.01, -0.07]}>
+          <boxGeometry args={[0.095, 0.095, 0.095]} />
           <CelMaterial color="#fde047" />
         </mesh>
         {/* 3D Wrist Watch / Scanner */}
         <mesh position={[0, -0.05, 0.02]}>
-          <boxGeometry args={[0.08, 0.04, 0.08]} />
+          <boxGeometry args={[0.12, 0.04, 0.12]} />
           <CelMaterial color="#0284c7" />
         </mesh>
       </group>

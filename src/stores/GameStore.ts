@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ROOM_SPAWN_POINTS } from '../constants/roomGraph';
 import { Vector3Tuple } from '../types/game';
+import { resetDetectionSystem } from '../systems/DetectionSystem';
 
 export interface InventoryItem {
   id: string;
@@ -361,13 +362,49 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     try {
       localStorage.removeItem('fpszombiebeken-save');
     } catch (e) { }
-    // Initialize Bina's starter items based on core game design
+
+    resetDetectionSystem();
+
+    // Initialize Bina's starter items based on core game design with fresh object copies
     const initialState = {
-      phase: 'intro' as GamePhase,
+      phase: 'menu' as GamePhase,
       currentRoom: 'lobby_l1',
-      player: initialPlayerState,
-      nusa: initialNusaState,
-      cure: initialCureState,
+      player: {
+        position: [0, 1.6, 2.0] as Vector3Tuple,
+        rotation: [0, Math.PI, 0] as Vector3Tuple,
+        health: 100,
+        maxHealth: 100,
+        stamina: 100,
+        maxStamina: 100,
+        inventory: [
+          { id: 'antidote_1', type: 'antidote' as const, name: 'Antidot', count: 3, description: 'Antidot untuk menyembuhkan zombie', iconPath: '/assets/icons/antidote.png' },
+          { id: 'bandage_1', type: 'bandage' as const, name: 'Bandage', count: 2, description: 'Penutup luka segera', iconPath: '/assets/icons/bandage.png' },
+          { id: 'flashlight_1', type: 'flashlight' as const, name: 'Senter', count: 1, description: 'Senter taktikal', iconPath: '/assets/icons/flashlight.png' }
+        ],
+        equippedSlot: 0,
+        isInVR: false,
+        isSprinting: false,
+        isCrouching: false,
+        injectionsUsed: 0,
+        injectionsConsumed: 0
+      },
+      nusa: {
+        position: [0, 0, 0] as Vector3Tuple,
+        state: 'hiding' as const,
+        health: 100,
+        currentRoom: 'kelas_2a',
+        isDead: false,
+        isRescued: false
+      },
+      cure: {
+        antidoteCrafted: false,
+        willyCured: false,
+        indiCured: false,
+        gatotCured: false,
+        studentsCured: 0,
+        totalStudents: 0,
+        curedZombieIds: []
+      },
       threatLevel: 0 as 0 | 1 | 2 | 3,
       lastDetectionMessage: null,
       backgroundMusicKey: null,
