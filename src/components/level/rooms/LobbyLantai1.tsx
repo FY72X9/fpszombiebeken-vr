@@ -120,8 +120,8 @@ export function LobbyLantai1() {
         ))}
 
         {/* ── Floor Entrance Mat ── */}
-        <mesh position={[0, -0.02, 4.5]}>
-          <boxGeometry args={[3.5, 0.03, 1.8]} />
+        <mesh position={[0, 0.005, 4.5]}>
+          <boxGeometry args={[3.5, 0.01, 1.8]} />
           <meshStandardMaterial color="#1e3a8a" roughness={0.95} />
         </mesh>
 

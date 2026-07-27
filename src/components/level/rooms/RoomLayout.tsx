@@ -88,12 +88,20 @@ export function RoomLayout({
           <boxGeometry args={[halfW - doorW / 2, height - dado, wallT]} />
           <meshStandardMaterial color={wallColor} roughness={0.7} />
         </mesh>
-        <mesh position={[0, dado, -halfD]}>
-          <boxGeometry args={[width, 0.06, wallT + 0.01]} />
+        <mesh position={[-(halfW - (halfW - doorW / 2) / 2), dado, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.06, wallT + 0.01]} />
           <meshStandardMaterial color="#94a3b8" roughness={0.3} metalness={0.2} />
         </mesh>
-        <mesh position={[0, 0.06, -halfD]}>
-          <boxGeometry args={[width, 0.12, wallT + 0.01]} />
+        <mesh position={[(halfW - (halfW - doorW / 2) / 2), dado, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.06, wallT + 0.01]} />
+          <meshStandardMaterial color="#94a3b8" roughness={0.3} metalness={0.2} />
+        </mesh>
+        <mesh position={[-(halfW - (halfW - doorW / 2) / 2), 0.06, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.12, wallT + 0.01]} />
+          <meshStandardMaterial color="#64748b" />
+        </mesh>
+        <mesh position={[(halfW - (halfW - doorW / 2) / 2), 0.06, -halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.12, wallT + 0.01]} />
           <meshStandardMaterial color="#64748b" />
         </mesh>
       </group>
@@ -116,12 +124,20 @@ export function RoomLayout({
           <boxGeometry args={[halfW - doorW / 2, height - dado, wallT]} />
           <meshStandardMaterial color={wallColor} roughness={0.7} />
         </mesh>
-        <mesh position={[0, dado, halfD]}>
-          <boxGeometry args={[width, 0.06, wallT + 0.01]} />
+        <mesh position={[-(halfW - (halfW - doorW / 2) / 2), dado, halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.06, wallT + 0.01]} />
           <meshStandardMaterial color="#94a3b8" roughness={0.3} metalness={0.2} />
         </mesh>
-        <mesh position={[0, 0.06, halfD]}>
-          <boxGeometry args={[width, 0.12, wallT + 0.01]} />
+        <mesh position={[(halfW - (halfW - doorW / 2) / 2), dado, halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.06, wallT + 0.01]} />
+          <meshStandardMaterial color="#94a3b8" roughness={0.3} metalness={0.2} />
+        </mesh>
+        <mesh position={[-(halfW - (halfW - doorW / 2) / 2), 0.06, halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.12, wallT + 0.01]} />
+          <meshStandardMaterial color="#64748b" />
+        </mesh>
+        <mesh position={[(halfW - (halfW - doorW / 2) / 2), 0.06, halfD]}>
+          <boxGeometry args={[halfW - doorW / 2, 0.12, wallT + 0.01]} />
           <meshStandardMaterial color="#64748b" />
         </mesh>
       </group>

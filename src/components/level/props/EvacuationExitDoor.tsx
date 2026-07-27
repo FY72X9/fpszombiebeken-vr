@@ -45,6 +45,14 @@ export function EvacuationExitDoor({ position, rotationY = Math.PI }: Evacuation
 
   const toggleDoor = (e: any) => {
     e.stopPropagation();
+    const state = useGameStore.getState();
+    const pPos = state.player.position;
+    const dx = pPos[0] - position[0];
+    const dz = pPos[2] - position[2];
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist > 2.0) {
+      return; // Ignore clicks from far away
+    }
     setIsOpen(!isOpen);
     handleEvacuate();
   };
