@@ -137,6 +137,34 @@ export function PlayerController() {
     const state = useGameStore.getState();
     if (state.phase !== 'playing') return;
 
+    // ── Check if room or phase changed inside frame loop to prevent race conditions ──
+    const isRoomChanged = lastRoomRef.current !== state.currentRoom;
+    const isPhaseChanged = state.phase !== lastPhaseRef.current && (state.phase === 'playing' || state.phase === 'menu');
+
+    if (!hasSyncedRef.current || isRoomChanged || isPhaseChanged) {
+      hasSyncedRef.current = true;
+      lastRoomRef.current = state.currentRoom;
+      lastPhaseRef.current = state.phase;
+
+      const [px, py, pz] = state.player.position;
+      const [, ry] = state.player.rotation;
+
+      vrPos.current.set(px, 0, pz);
+      vrYaw.current = ry;
+
+      if (playerRigRef.current) {
+        playerRigRef.current.position.set(px, 0, pz);
+        playerRigRef.current.rotation.set(0, ry, 0);
+      }
+
+      camera.position.set(px, py, pz);
+      camera.rotation.order = 'YXZ';
+      camera.rotation.set(0, ry, 0);
+      camera.quaternion.setFromEuler(camera.rotation);
+      camera.updateMatrixWorld(true);
+      return;
+    }
+
     if (isPresenting && session) {
       // ── WebXR VR Controller Direct Locomotion & Interaction Handler ──
       for (const source of session.inputSources) {
