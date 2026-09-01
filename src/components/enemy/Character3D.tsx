@@ -5,12 +5,13 @@ import * as THREE from 'three';
 import { CelMaterial } from '../../shaders/CelMaterial';
 
 export interface Character3DProps {
-  type?: 'STUDENT' | 'LECTURER' | 'BOSS_WILLY' | 'NUSA' | 'BINA';
+  type?: 'STUDENT' | 'LECTURER' | 'BOSS_GATOT' | 'BOSS_WILLY' | 'KOH_WILLY' | 'NUSA' | 'BINA';
   nameLabel?: string;
   state?: 'idle' | 'wander' | 'alert' | 'chase' | 'attack' | 'search' | 'stunned' | 'cured';
   isZombie?: boolean;
   isInjecting?: boolean;
   injectionProgress?: number; // 0 to 100
+  isTargeted?: boolean;
   position?: [number, number, number];
   rotationY?: number;
   onClick?: (e: any) => void;
@@ -23,6 +24,7 @@ export function Character3D({
   isZombie = true,
   isInjecting = false,
   injectionProgress = 0,
+  isTargeted = false,
   position = [0, 0, 0],
   rotationY = 0,
   onClick
@@ -89,6 +91,8 @@ export function Character3D({
     }
   });
 
+  const isBoss = type === 'BOSS_GATOT' || type === 'BOSS_WILLY';
+
   // Color scheme based on character state (Cured Healthy vs Injected Aura vs Infected Zombie)
   let shirtColor = '#ffffff';
   let pantsColor = '#1e3a8a';
@@ -99,13 +103,17 @@ export function Character3D({
     shirtColor = isCured ? '#1e293b' : isInjecting ? '#0e7490' : '#334155';
     pantsColor = '#0f172a';
     hairColor = '#475569';
-  } else if (type === 'BOSS_WILLY') {
+  } else if (type === 'KOH_WILLY') {
+    shirtColor = isCured ? '#0369a1' : isInjecting ? '#0284c7' : '#1e3a5f';
+    pantsColor = '#1e293b';
+    hairColor = '#0f172a';
+  } else if (isBoss) {
     shirtColor = isCured ? '#020617' : isInjecting ? '#a21caf' : '#991b1b';
     pantsColor = '#020617';
     hairColor = '#7f1d1d';
   } else if (type === 'NUSA') {
     shirtColor = '#0284c7';
-    pantsColor = '#1e293b';
+    pantsColor = '#1e3a8a';
     hairColor = '#fbbf24';
   }
 
@@ -187,14 +195,14 @@ export function Character3D({
           <CelMaterial color={hairColor} />
         </mesh>
 
-        {type === 'LECTURER' && (
+        {(type === 'LECTURER' || type === 'KOH_WILLY') && (
           <mesh position={[0, 0.02, 0.22]}>
             <boxGeometry args={[0.34, 0.08, 0.04]} />
             <CelMaterial color="#0f172a" />
           </mesh>
         )}
 
-        {type === 'BOSS_WILLY' && (
+        {isBoss && (
           <mesh position={[0, -0.3, 0.18]}>
             <boxGeometry args={[0.08, 0.35, 0.02]} />
             <CelMaterial color="#dc2626" />
@@ -212,6 +220,45 @@ export function Character3D({
           </mesh>
         </group>
       </group>
+
+      {/* ── 3D HOLOGRAPHIC AIM RETICLE & LOCK-ON BRACKETS ── */}
+      {isTargeted && !isCured && (
+        <group position={[0, 1.0, 0]}>
+          {/* Aim Target Ring */}
+          <mesh rotation={[0, 0, 0]}>
+            <ringGeometry args={[0.55, 0.60, 32]} />
+            <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} transparent opacity={0.85} />
+          </mesh>
+          {/* Inner pulsating crosshair reticle */}
+          <mesh position={[0, 0, 0.01]}>
+            <ringGeometry args={[0.22, 0.25, 16]} />
+            <meshBasicMaterial color="#facc15" side={THREE.DoubleSide} transparent opacity={0.9} />
+          </mesh>
+          {/* Top/Bottom/Left/Right Bracket Ticks */}
+          {[-0.65, 0.65].map((x, i) => (
+            <mesh key={`h${i}`} position={[x, 0, 0.01]}>
+              <boxGeometry args={[0.12, 0.03, 0.01]} />
+              <meshBasicMaterial color="#38bdf8" />
+            </mesh>
+          ))}
+          {[-0.65, 0.65].map((y, i) => (
+            <mesh key={`v${i}`} position={[0, y, 0.01]}>
+              <boxGeometry args={[0.03, 0.12, 0.01]} />
+              <meshBasicMaterial color="#38bdf8" />
+            </mesh>
+          ))}
+          {/* Action Prompt Banner under zombie */}
+          <group position={[0, -0.85, 0.05]}>
+            <mesh>
+              <planeGeometry args={[1.6, 0.28]} />
+              <meshBasicMaterial color="#0284c7" transparent opacity={0.88} />
+            </mesh>
+            <Text position={[0, 0, 0.01]} fontSize={0.11} color="#ffffff" anchorX="center" anchorY="middle">
+              🎯 [TRIGGER / KLIK] SUNTIK
+            </Text>
+          </group>
+        </group>
+      )}
 
       {/* ── 3D INDIVIDUAL INJECTION PROGRESS RING & PARTICLES ── */}
       {isInjecting && (
@@ -243,20 +290,20 @@ export function Character3D({
           <Text
             position={[0, 0.08, 0.01]}
             fontSize={0.16}
-            color={isCured ? '#4ade80' : isInjecting ? '#facc15' : '#f87171'}
+            color={isCured ? '#4ade80' : isInjecting ? '#facc15' : isTargeted ? '#38bdf8' : '#f87171'}
             anchorX="center"
             anchorY="middle"
           >
-            {nameLabel || (type === 'BOSS_WILLY' ? 'Boss Willy' : type === 'LECTURER' ? 'Dosen Zombie' : 'Mahasiswa Zombie')}
+            {nameLabel || (isBoss ? 'Boss Gatot' : type === 'KOH_WILLY' ? 'Koh Willy' : type === 'LECTURER' ? 'Dosen' : 'Mahasiswa Zombie')}
           </Text>
           <Text
             position={[0, -0.1, 0.01]}
             fontSize={0.12}
-            color={isCured ? '#38bdf8' : isInjecting ? '#eab308' : '#ef4444'}
+            color={isCured ? '#38bdf8' : isInjecting ? '#eab308' : isTargeted ? '#fde047' : '#ef4444'}
             anchorX="center"
             anchorY="middle"
           >
-            {isCured ? '✓ STATUS: SEMBUH' : isInjecting ? `⚡ SUNTIK ${Math.round(injectionProgress)}%` : '⚠️ STATUS: ZOMBIE'}
+            {isCured ? '✓ STATUS: SEMBUH' : isInjecting ? `⚡ SUNTIK ${Math.round(injectionProgress)}%` : isTargeted ? '🎯 SIAP DISUNTIK' : '⚠️ STATUS: ZOMBIE'}
           </Text>
         </group>
       )}

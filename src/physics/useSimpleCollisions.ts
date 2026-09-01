@@ -34,11 +34,19 @@ export function getRoomBoundary(roomId: string): { halfX: number; halfZ: number 
 
 export function getStairElevation(position: THREE.Vector3, roomId: string): number {
   if (roomId === 'stairs_l1_to_l2') {
-    // Smooth step climbing from Y=0 at Z=+5.0 (bottom) to Y=3.2 at Z=-5.0 (top)
-    const zBottom = 5.0;
-    const zTop = -5.0;
+    // Bottom landing at z >= 4.4 (Y = 0.0)
+    // Step incline from z = 4.4 down to z = -2.7 (Y climbs 0.0 -> 3.15)
+    // Top landing platform from z = -2.7 to z = -5.9 (Y = 3.15)
+    if (position.z >= 4.4) {
+      return 0;
+    }
+    if (position.z <= -2.7) {
+      return 3.15;
+    }
+    const zBottom = 4.4;
+    const zTop = -2.7;
     const progress = Math.max(0, Math.min(1, (zBottom - position.z) / (zBottom - zTop)));
-    return progress * 3.2;
+    return progress * 3.15;
   }
   return 0;
 }

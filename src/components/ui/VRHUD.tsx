@@ -17,12 +17,16 @@ export function VRHUD() {
   const targetRot = useRef(new THREE.Quaternion());
 
   const [isMinimized, setIsMinimized] = useState(false);
+  const [hudTab, setHudTab] = useState<'status' | 'comfort'>('status');
   const [toggleHovered, setToggleHovered] = useState(false);
+  const [comfortHovered, setComfortHovered] = useState(false);
   const [exitHovered, setExitHovered] = useState(false);
 
   const phase = useGameStore((s) => s.phase);
   const setPhase = useGameStore((s) => s.setPhase);
   const reset = useGameStore((s) => s.reset);
+  const accessibility = useGameStore((s) => s.accessibility);
+  const updateAccessibility = useGameStore((s) => s.updateAccessibility);
   const health = useGameStore((s) => s.player.health);
   const maxHealth = useGameStore((s) => s.player.maxHealth);
   const stamina = useGameStore((s) => s.player.stamina);
@@ -35,31 +39,44 @@ export function VRHUD() {
   const currentRoom = useGameStore((s) => s.currentRoom);
 
   const roomTitle = ROOM_LABELS[currentRoom as keyof typeof ROOM_LABELS] || currentRoom;
-  const antidoteCount = inventory.find((i) => i.type === 'antidote')?.count || 0;
-  const lecturersCuredCount = (cureState.indiCured ? 1 : 0) + (cureState.gatotCured ? 1 : 0);
+  const antidoteCount = inventory.filter((i) => i.type === 'antidote').reduce((acc, cur) => acc + (cur.count || 1), 0);
+  const lecturersCuredCount = (cureState.indiCured ? 1 : 0) + (cureState.willyCured ? 1 : 0);
 
   // Win / All Missions Completed condition check
   const isAllMissionsComplete =
     phase === 'win' ||
     (nusaState.isRescued &&
-      cureState.willyCured &&
+      cureState.gatotCured &&
       lecturersCuredCount >= 2 &&
       cureState.studentsCured >= 4);
 
   useFrame(() => {
     if (!isPresenting || !hudGroupRef.current) return;
 
-    // Position HUD at Front-Top (depan atas) in front of VR camera view
     camera.getWorldPosition(targetPos.current);
     camera.getWorldQuaternion(targetRot.current);
 
-    // Front-top offset [x=0, y=0.34, z=-1.0] relative to VR camera orientation
-    const offset = new THREE.Vector3(0, 0.34, -1.0).applyQuaternion(targetRot.current);
+    // Dynamic HUD placement according to player comfort preference
+    const hudPosMode = accessibility.hudPosition || 'bottom';
+    let yOffset = -0.22;
+    let zOffset = -1.05;
+    let tiltAngle = 0.16; // Tilted slightly upwards towards eyes
+
+    if (hudPosMode === 'center') {
+      yOffset = -0.04;
+      zOffset = -1.10;
+      tiltAngle = 0.0;
+    } else if (hudPosMode === 'top') {
+      yOffset = 0.18;
+      zOffset = -1.00;
+      tiltAngle = -0.12; // Tilted slightly downwards
+    }
+
+    const offset = new THREE.Vector3(0, yOffset, zOffset).applyQuaternion(targetRot.current);
     targetPos.current.add(offset);
 
-    // Slightly tilt HUD downwards towards camera line of sight (-0.14 rad / ~8 degrees)
     const tiltRot = targetRot.current.clone().multiply(
-      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -0.14)
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), tiltAngle)
     );
 
     // Smoothly lerp HUD position & rotation for fluid movement
@@ -107,9 +124,9 @@ export function VRHUD() {
           <meshBasicMaterial color="#00f0ff" transparent opacity={0.4} />
         </mesh>
 
-        {/* Exit & Reset Button (Left) */}
+        {/* Exit & Reset Button (Far Left) */}
         <group
-          position={[-0.29, 0, 0.01]}
+          position={[-0.34, 0, 0.01]}
           onClick={(e) => {
             e.stopPropagation();
             handleExitReset();
@@ -118,32 +135,70 @@ export function VRHUD() {
           onPointerOut={() => setExitHovered(false)}
         >
           <mesh position={[0, 0, 0]}>
-            <planeGeometry args={[0.22, 0.05]} />
+            <planeGeometry args={[0.16, 0.05]} />
             <meshBasicMaterial
               color={isAllMissionsComplete ? (exitHovered ? '#00ff88' : '#059669') : (exitHovered ? '#ff0055' : '#9f1239')}
               transparent
               opacity={0.8}
             />
           </mesh>
-          <Text position={[0, 0, 0.01]} fontSize={0.024} color="#ffffff" anchorX="center" anchorY="middle">
-            {isAllMissionsComplete ? '🏆 EXIT & RESET' : '🚪 EXIT VR'}
+          <Text position={[0, 0, 0.01]} fontSize={0.022} color="#ffffff" anchorX="center" anchorY="middle">
+            {isAllMissionsComplete ? '🏆 RESET' : '🚪 EXIT'}
           </Text>
         </group>
 
-        {/* Center Title & Threat Level Indicator */}
-        <group position={[0, 0, 0.01]}>
-          <Text position={[0, 0.01, 0]} fontSize={0.026} color="#00f0ff" anchorX="center" anchorY="middle">
-            FPZOMBIEBEKEN VR
-          </Text>
-
-          <Text position={[0, -0.015, 0]} fontSize={0.022} color="#94a3b8" anchorX="center" anchorY="middle">
-            THREAT: {threatLabel}
-          </Text>
-        </group>
-
-        {/* Toggle Minimize / Expand Button (Right) */}
+        {/* Tab Switch: Status Matrix */}
         <group
-          position={[0.29, 0, 0.01]}
+          position={[-0.17, 0, 0.01]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setHudTab('status');
+            setIsMinimized(false);
+          }}
+        >
+          <mesh position={[0, 0, 0]}>
+            <planeGeometry args={[0.15, 0.05]} />
+            <meshBasicMaterial color={hudTab === 'status' ? '#0284c7' : '#1e293b'} transparent opacity={0.85} />
+          </mesh>
+          <Text position={[0, 0, 0.01]} fontSize={0.022} color={hudTab === 'status' ? '#38bdf8' : '#94a3b8'} anchorX="center" anchorY="middle">
+            📊 STATUS
+          </Text>
+        </group>
+
+        {/* Tab Switch: Comfort & Height */}
+        <group
+          position={[0.0, 0, 0.01]}
+          onClick={(e) => {
+            e.stopPropagation();
+            setHudTab('comfort');
+            setIsMinimized(false);
+          }}
+          onPointerOver={() => setComfortHovered(true)}
+          onPointerOut={() => setComfortHovered(false)}
+        >
+          <mesh position={[0, 0, 0]}>
+            <planeGeometry args={[0.16, 0.05]} />
+            <meshBasicMaterial color={hudTab === 'comfort' ? '#7c3aed' : (comfortHovered ? '#475569' : '#1e293b')} transparent opacity={0.85} />
+          </mesh>
+          <Text position={[0, 0, 0.01]} fontSize={0.022} color={hudTab === 'comfort' ? '#c4b5fd' : '#cbd5e1'} anchorX="center" anchorY="middle">
+            ⚙️ COMFORT
+          </Text>
+        </group>
+
+        {/* Threat Level Indicator */}
+        <group position={[0.17, 0, 0.01]}>
+          <mesh position={[0, 0, 0]}>
+            <planeGeometry args={[0.15, 0.05]} />
+            <meshBasicMaterial color="#0f172a" transparent opacity={0.6} />
+          </mesh>
+          <Text position={[0, 0, 0.01]} fontSize={0.020} color="#00f0ff" anchorX="center" anchorY="middle">
+            {threatLabel}
+          </Text>
+        </group>
+
+        {/* Toggle Minimize / Expand Button (Far Right) */}
+        <group
+          position={[0.34, 0, 0.01]}
           onClick={(e) => {
             e.stopPropagation();
             setIsMinimized(!isMinimized);
@@ -152,10 +207,10 @@ export function VRHUD() {
           onPointerOut={() => setToggleHovered(false)}
         >
           <mesh position={[0, 0, 0]}>
-            <planeGeometry args={[0.18, 0.05]} />
+            <planeGeometry args={[0.16, 0.05]} />
             <meshBasicMaterial color={toggleHovered ? '#0284c7' : '#0369a1'} transparent opacity={0.8} />
           </mesh>
-          <Text position={[0, 0, 0.01]} fontSize={0.024} color="#ffffff" anchorX="center" anchorY="middle">
+          <Text position={[0, 0, 0.01]} fontSize={0.022} color="#ffffff" anchorX="center" anchorY="middle">
             {isMinimized ? '📖 EXPAND' : '📁 MINI'}
           </Text>
         </group>
@@ -178,23 +233,19 @@ export function VRHUD() {
         </group>
       )}
 
-      {/* ── 3. EXPANDED FUTURISTIC VISOR WINGS (POJOK KANAN & KIRI) ── */}
-      {!isMinimized && (
+      {/* ── 3. EXPANDED PANELS (STATUS OR COMFORT SETTINGS) ── */}
+      {!isMinimized && hudTab === 'status' && (
         <>
           {/* ── TOP-LEFT WING: Vitals & Equipment (Pojok Kiri) ── */}
           <group position={[-0.46, -0.04, -0.02]} rotation={[0, 0.14, 0]}>
-            {/* Hologram Panel Background */}
             <mesh position={[0, 0, -0.01]}>
               <planeGeometry args={[0.48, 0.28]} />
               <meshBasicMaterial color="#030712" transparent opacity={0.4} />
             </mesh>
-            {/* Border Outline */}
             <mesh position={[0, 0, -0.012]}>
               <planeGeometry args={[0.488, 0.288]} />
               <meshBasicMaterial color="#00f0ff" transparent opacity={0.25} />
             </mesh>
-
-            {/* Sci-Fi Top Accent Line */}
             <mesh position={[0, 0.138, -0.008]}>
               <planeGeometry args={[0.48, 0.004]} />
               <meshBasicMaterial color="#00f0ff" />
@@ -254,18 +305,14 @@ export function VRHUD() {
 
           {/* ── TOP-RIGHT WING: Tactical Matrix & Objectives (Pojok Kanan) ── */}
           <group position={[0.46, -0.04, -0.02]} rotation={[0, -0.14, 0]}>
-            {/* Hologram Panel Background */}
             <mesh position={[0, 0, -0.01]}>
               <planeGeometry args={[0.48, 0.28]} />
               <meshBasicMaterial color="#030712" transparent opacity={0.4} />
             </mesh>
-            {/* Border Outline */}
             <mesh position={[0, 0, -0.012]}>
               <planeGeometry args={[0.488, 0.288]} />
               <meshBasicMaterial color="#00f0ff" transparent opacity={0.25} />
             </mesh>
-
-            {/* Sci-Fi Top Accent Line */}
             <mesh position={[0, 0.138, -0.008]}>
               <planeGeometry args={[0.48, 0.004]} />
               <meshBasicMaterial color="#00f0ff" />
@@ -286,31 +333,295 @@ export function VRHUD() {
             </Text>
 
             {/* Nusa Objective */}
-            <Text
-              position={[-0.21, 0.00, 0.01]}
-              fontSize={0.022}
-              color={nusaState.isRescued ? '#00ff88' : '#ff0055'}
-              anchorX="left"
-              anchorY="middle"
-            >
+            <Text position={[-0.21, 0.00, 0.01]} fontSize={0.022} color={nusaState.isRescued ? '#00ff88' : '#ff0055'} anchorX="left" anchorY="middle">
               👤 NUSA: {nusaState.isRescued ? '✓ SELAMAT' : '❓ KELAS 2A'}
             </Text>
 
-            {/* Boss Willy Objective */}
-            <Text
-              position={[-0.21, -0.04, 0.01]}
-              fontSize={0.022}
-              color={cureState.willyCured ? '#00ff88' : '#ffd700'}
-              anchorX="left"
-              anchorY="middle"
-            >
-              🎯 WILLY: {cureState.willyCured ? '✓ SEMBUH' : '❓ RUANG DIREKTUR'}
+            {/* Boss Gatot Objective (Direktur) */}
+            <Text position={[-0.21, -0.04, 0.01]} fontSize={0.022} color={cureState.gatotCured ? '#00ff88' : '#ffd700'} anchorX="left" anchorY="middle">
+              🎯 GATOT: {cureState.gatotCured ? '✓ SEMBUH' : '❓ RUANG DIREKTUR'}
             </Text>
 
             {/* Dosen & Mahasiswa Counters */}
             <Text position={[-0.21, -0.08, 0.01]} fontSize={0.022} color="#e2e8f0" anchorX="left" anchorY="middle">
               🏫 DOSEN: {lecturersCuredCount}/2  |  🎓 MHS: {cureState.studentsCured}/4
             </Text>
+          </group>
+        </>
+      )}
+
+      {/* ── 3C. FLOATING EMPTY ANTIDOTE ALERT & REFILL GUIDE BANNER ── */}
+      {antidoteCount === 0 && !isAllMissionsComplete && (
+        <group position={[0, -0.19, 0.01]}>
+          <mesh position={[0, 0, 0]}>
+            <planeGeometry args={[0.88, 0.07]} />
+            <meshBasicMaterial color="#7f1d1d" transparent opacity={0.92} />
+          </mesh>
+          <mesh position={[0, 0, -0.002]}>
+            <planeGeometry args={[0.886, 0.076]} />
+            <meshBasicMaterial color="#ef4444" />
+          </mesh>
+          <Text position={[0, 0, 0.01]} fontSize={0.022} color="#ffffff" anchorX="center" anchorY="middle">
+            ⚠️ ANTIDOT HABIS! Isi ulang di RUANG DOSEN (Lt 1)
+          </Text>
+        </group>
+      )}
+
+      {/* ── 3B. EXPANDED VR COMFORT & HEIGHT ACCESSIBILITY PANEL ── */}
+      {!isMinimized && hudTab === 'comfort' && (
+        <>
+          {/* Left Wing: Rotation & FOV Vignette */}
+          <group position={[-0.46, -0.04, -0.02]} rotation={[0, 0.14, 0]}>
+            <mesh position={[0, 0, -0.01]}>
+              <planeGeometry args={[0.48, 0.28]} />
+              <meshBasicMaterial color="#030712" transparent opacity={0.4} />
+            </mesh>
+            <mesh position={[0, 0, -0.012]}>
+              <planeGeometry args={[0.488, 0.288]} />
+              <meshBasicMaterial color="#a855f7" transparent opacity={0.3} />
+            </mesh>
+            <mesh position={[0, 0.138, -0.008]}>
+              <planeGeometry args={[0.48, 0.004]} />
+              <meshBasicMaterial color="#a855f7" />
+            </mesh>
+
+            <Text position={[-0.21, 0.10, 0.01]} fontSize={0.024} color="#c084fc" anchorX="left" anchorY="middle">
+              VR TURNING & MOTION
+            </Text>
+
+            {/* Turn Mode Toggle */}
+            <Text position={[-0.21, 0.05, 0.01]} fontSize={0.020} color="#ffffff" anchorX="left" anchorY="middle">
+              Turn Mode:
+            </Text>
+            {/* Snap 45 */}
+            <group
+              position={[-0.04, 0.05, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ turnMode: 'snap', snapTurnAngle: 45 });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.13, 0.034]} />
+                <meshBasicMaterial color={accessibility.turnMode === 'snap' && accessibility.snapTurnAngle === 45 ? '#7c3aed' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.018} color="#ffffff" anchorX="center" anchorY="middle">
+                Snap 45°
+              </Text>
+            </group>
+            {/* Snap 30 */}
+            <group
+              position={[0.10, 0.05, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ turnMode: 'snap', snapTurnAngle: 30 });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.13, 0.034]} />
+                <meshBasicMaterial color={accessibility.turnMode === 'snap' && accessibility.snapTurnAngle === 30 ? '#7c3aed' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.018} color="#ffffff" anchorX="center" anchorY="middle">
+                Snap 30°
+              </Text>
+            </group>
+
+            {/* FOV Vignette Level */}
+            <Text position={[-0.21, -0.01, 0.01]} fontSize={0.020} color="#ffffff" anchorX="left" anchorY="middle">
+              Vignette:
+            </Text>
+            {(['high', 'medium', 'off'] as const).map((lvl, idx) => (
+              <group
+                key={lvl}
+                position={[-0.06 + idx * 0.12, -0.01, 0.01]}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateAccessibility({ comfortVignette: lvl });
+                }}
+              >
+                <mesh>
+                  <planeGeometry args={[0.11, 0.034]} />
+                  <meshBasicMaterial color={accessibility.comfortVignette === lvl ? '#0284c7' : '#334155'} />
+                </mesh>
+                <Text position={[0, 0, 0.01]} fontSize={0.018} color="#ffffff" anchorX="center" anchorY="middle">
+                  {lvl.toUpperCase()}
+                </Text>
+              </group>
+            ))}
+
+            {/* Move Speed */}
+            <Text position={[-0.21, -0.07, 0.01]} fontSize={0.020} color="#ffffff" anchorX="left" anchorY="middle">
+              Speed:
+            </Text>
+            <group
+              position={[-0.03, -0.07, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ vrSpeedMode: 'comfort' });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.15, 0.034]} />
+                <meshBasicMaterial color={accessibility.vrSpeedMode === 'comfort' ? '#059669' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.018} color="#ffffff" anchorX="center" anchorY="middle">
+                🚶 Comfort
+              </Text>
+            </group>
+            <group
+              position={[0.13, -0.07, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ vrSpeedMode: 'normal' });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.15, 0.034]} />
+                <meshBasicMaterial color={accessibility.vrSpeedMode === 'normal' ? '#059669' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.018} color="#ffffff" anchorX="center" anchorY="middle">
+                🏃 Normal
+              </Text>
+            </group>
+          </group>
+
+          {/* Right Wing: Eye-Height Calibration (Anti-Squatting / Anti-Jongkok) */}
+          <group position={[0.46, -0.04, -0.02]} rotation={[0, -0.14, 0]}>
+            <mesh position={[0, 0, -0.01]}>
+              <planeGeometry args={[0.48, 0.28]} />
+              <meshBasicMaterial color="#030712" transparent opacity={0.4} />
+            </mesh>
+            <mesh position={[0, 0, -0.012]}>
+              <planeGeometry args={[0.488, 0.288]} />
+              <meshBasicMaterial color="#00f0ff" transparent opacity={0.25} />
+            </mesh>
+            <mesh position={[0, 0.138, -0.008]}>
+              <planeGeometry args={[0.48, 0.004]} />
+              <meshBasicMaterial color="#00f0ff" />
+            </mesh>
+
+            <Text position={[-0.21, 0.10, 0.01]} fontSize={0.024} color="#00f0ff" anchorX="left" anchorY="middle">
+              VR EYE-HEIGHT CALIBRATION
+            </Text>
+
+            {/* Current Height Offset Display */}
+            <Text position={[0, 0.05, 0.01]} fontSize={0.022} color="#fde047" anchorX="center" anchorY="middle">
+              Height Boost: +{Math.round((accessibility.vrHeightOffset ?? 0.25) * 100)} cm
+            </Text>
+
+            {/* Stepper Buttons: +10cm, -10cm */}
+            <group
+              position={[-0.10, 0.00, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                const cur = accessibility.vrHeightOffset ?? 0.25;
+                updateAccessibility({ vrHeightOffset: Math.max(-0.5, Math.min(1.0, cur - 0.1)) });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.18, 0.038]} />
+                <meshBasicMaterial color="#475569" />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.019} color="#ffffff" anchorX="center" anchorY="middle">
+                ⬇️ -10 cm
+              </Text>
+            </group>
+
+            <group
+              position={[0.10, 0.00, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                const cur = accessibility.vrHeightOffset ?? 0.25;
+                updateAccessibility({ vrHeightOffset: Math.max(-0.5, Math.min(1.0, cur + 0.1)) });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.18, 0.038]} />
+                <meshBasicMaterial color="#475569" />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.019} color="#ffffff" anchorX="center" anchorY="middle">
+                ⬆️ +10 cm
+              </Text>
+            </group>
+
+            {/* Presets: Seated vs Standing */}
+            <group
+              position={[-0.12, -0.06, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ vrHeightOffset: 0.45 });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.14, 0.034]} />
+                <meshBasicMaterial color={accessibility.vrHeightOffset === 0.45 ? '#0284c7' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.017} color="#ffffff" anchorX="center" anchorY="middle">
+                🪑 Duduk (+45cm)
+              </Text>
+            </group>
+
+            <group
+              position={[0.03, -0.06, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ vrHeightOffset: 0.25 });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.14, 0.034]} />
+                <meshBasicMaterial color={accessibility.vrHeightOffset === 0.25 ? '#0284c7' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.017} color="#ffffff" anchorX="center" anchorY="middle">
+                🧍 Berdiri (+25cm)
+              </Text>
+            </group>
+
+            <group
+              position={[0.16, -0.06, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ vrHeightOffset: 0.0 });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.10, 0.034]} />
+                <meshBasicMaterial color={accessibility.vrHeightOffset === 0.0 ? '#0284c7' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.017} color="#ffffff" anchorX="center" anchorY="middle">
+                Reset 0
+              </Text>
+            </group>
+
+            {/* HUD Placement Position Controls */}
+            <Text position={[-0.21, -0.11, 0.01]} fontSize={0.018} color="#38bdf8" anchorX="left" anchorY="middle">
+              POSISI HUD:
+            </Text>
+            {[
+              { label: '📍 Bawah', val: 'bottom', x: -0.06 },
+              { label: '📍 Tengah', val: 'center', x: 0.05 },
+              { label: '📍 Atas', val: 'top', x: 0.16 },
+            ].map((p) => {
+              const isSelected = (accessibility.hudPosition || 'bottom') === p.val;
+              return (
+                <group
+                  key={p.val}
+                  position={[p.x, -0.11, 0.01]}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateAccessibility({ hudPosition: p.val as any });
+                  }}
+                >
+                  <mesh>
+                    <planeGeometry args={[0.095, 0.028]} />
+                    <meshBasicMaterial color={isSelected ? '#0284c7' : '#334155'} />
+                  </mesh>
+                  <Text position={[0, 0, 0.01]} fontSize={0.015} color="#ffffff" anchorX="center" anchorY="middle">
+                    {p.label}
+                  </Text>
+                </group>
+              );
+            })}
           </group>
         </>
       )}

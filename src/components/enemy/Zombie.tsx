@@ -4,11 +4,12 @@ import * as THREE from 'three';
 import { activeEnemiesMap, EnemyEntity } from '../../systems/DetectionSystem';
 import { startInjection } from '../../systems/InjectionSystem';
 import { useGameStore } from '../../stores/GameStore';
+import { currentTargetedZombieId } from '../interaction/InteractionSystem';
 import { Character3D } from './Character3D';
 
 interface ZombieProps {
   id: string;
-  type?: 'STUDENT' | 'LECTURER' | 'BOSS_WILLY';
+  type?: 'STUDENT' | 'LECTURER' | 'BOSS_GATOT' | 'BOSS_WILLY' | 'KOH_WILLY';
   initialPosition: [number, number, number];
   room: string;
   color?: string;
@@ -33,6 +34,7 @@ export function Zombie({
   const curedZombieIds = useGameStore((s) => s.cure.curedZombieIds);
   const isCuredInStore = curedZombieIds.includes(id);
 
+  const isBoss = type === 'BOSS_GATOT' || type === 'BOSS_WILLY';
   const entityRef = useRef<EnemyEntity>({
     id,
     type,
@@ -40,8 +42,8 @@ export function Zombie({
     position: posRef.current,
     rotation: rotRef.current,
     state: isCuredInStore ? 'cured' : 'idle',
-    health: type === 'BOSS_WILLY' ? 300 : type === 'LECTURER' ? 150 : 80,
-    maxHealth: type === 'BOSS_WILLY' ? 300 : type === 'LECTURER' ? 150 : 80,
+    health: isBoss ? 300 : type === 'LECTURER' || type === 'KOH_WILLY' ? 150 : 80,
+    maxHealth: isBoss ? 300 : type === 'LECTURER' || type === 'KOH_WILLY' ? 150 : 80,
     stunTimer: 0,
     searchTimer: 0,
     attackCooldown: 0,
@@ -53,6 +55,7 @@ export function Zombie({
   const [activeState, setActiveState] = useState<EnemyEntity['state']>(entityRef.current.state);
   const [isInjectingState, setIsInjectingState] = useState<boolean>(false);
   const [progressState, setProgressState] = useState<number>(0);
+  const [isTargetedState, setIsTargetedState] = useState<boolean>(false);
 
   useEffect(() => {
     if (curedZombieIds.includes(id)) {
@@ -84,10 +87,13 @@ export function Zombie({
     const enemy = entityRef.current;
     if (enemy.room !== useGameStore.getState().currentRoom) return;
 
-    // React state sync for real-time 3D animation switching
+    // React state sync for real-time 3D animation switching & targeting reticle
     if (enemy.state !== activeState) setActiveState(enemy.state);
     if (!!enemy.isInjecting !== isInjectingState) setIsInjectingState(!!enemy.isInjecting);
     if ((enemy.injectionProgress || 0) !== progressState) setProgressState(enemy.injectionProgress || 0);
+
+    const isCurrentlyTargeted = currentTargetedZombieId === id;
+    if (isCurrentlyTargeted !== isTargetedState) setIsTargetedState(isCurrentlyTargeted);
 
     if (enemy.state === 'cured') return;
 
@@ -102,7 +108,8 @@ export function Zombie({
         dir.normalize();
         const targetRotY = Math.atan2(dir.x, dir.z);
         rotRef.current.y += (targetRotY - rotRef.current.y) * 0.1;
-        const speed = type === 'BOSS_WILLY' ? 1.4 : type === 'LECTURER' ? 1.8 : 2.0;
+        const isBossEnemy = type === 'BOSS_GATOT' || type === 'BOSS_WILLY';
+        const speed = isBossEnemy ? 1.4 : type === 'LECTURER' || type === 'KOH_WILLY' ? 1.8 : 2.0;
         posRef.current.add(dir.multiplyScalar(speed * delta));
       }
     } else if (enemy.state === 'idle' || enemy.state === 'wander' || enemy.state === 'search') {
@@ -154,8 +161,8 @@ export function Zombie({
       if (hasAntidote) {
         startInjection(id);
       } else {
-        useGameStore.getState().setDetectionMessage('Membutuhkan Antidot Syringe!');
-        setTimeout(() => useGameStore.getState().setDetectionMessage(null), 2000);
+        useGameStore.getState().setDetectionMessage('⚠️ Antidot habis! Isi ulang di Ruang Dosen (Lantai 1)!');
+        setTimeout(() => useGameStore.getState().setDetectionMessage(null), 3000);
       }
     }
   };
@@ -169,6 +176,7 @@ export function Zombie({
         isZombie={true}
         isInjecting={isInjectingState}
         injectionProgress={progressState}
+        isTargeted={isTargetedState}
         onClick={handleInteract}
       />
     </group>

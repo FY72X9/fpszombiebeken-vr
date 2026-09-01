@@ -77,12 +77,17 @@ export function InjectionSystem() {
         state.removeInventoryItem(antidoteItem.id);
       }
 
-      if (enemy.type === 'BOSS_WILLY') state.setCured('willy');
-      else if (enemy.id.includes('indi')) state.setCured('indi');
-      else if (enemy.id.includes('gatot')) state.setCured('gatot');
-      else state.incrementStudentsCured();
+      if (enemy.type === 'BOSS_GATOT' || enemy.id.includes('gatot')) {
+        state.setCured('gatot');
+      } else if (enemy.type === 'KOH_WILLY' || enemy.id.includes('willy')) {
+        state.setCured('willy');
+      } else if (enemy.id.includes('indi')) {
+        state.setCured('indi');
+      } else {
+        state.incrementStudentsCured();
+      }
 
-      const displayName = enemy.nameLabel || (enemy.type === 'BOSS_WILLY' ? 'Boss Willy' : enemy.type === 'LECTURER' ? 'Dosen' : 'Mahasiswa Zombie');
+      const displayName = enemy.nameLabel || (enemy.type === 'BOSS_GATOT' ? 'Boss Gatot' : enemy.type === 'KOH_WILLY' ? 'Koh Willy' : enemy.type === 'LECTURER' ? 'Dosen' : 'Mahasiswa Zombie');
       state.setDetectionMessage(`[✓ SUKSES] ${displayName} (STATUS: SEMBUH / CURED)!`);
       setTimeout(() => state.setDetectionMessage(null), 3500);
     }

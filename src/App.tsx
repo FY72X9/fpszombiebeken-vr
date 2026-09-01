@@ -18,11 +18,25 @@ import { PerformanceMonitor } from './components/debug/PerformanceMonitor';
 
 function VRSessionTracker() {
   const session = useXR((s) => s.session);
+  const phase = useGameStore((s) => s.phase);
+
   useEffect(() => {
     useGameStore.setState((s) => ({
       player: { ...s.player, isInVR: !!session }
     }));
   }, [session]);
+
+  // When game ends (gameover or win), automatically exit VR session back to browser 2D UI
+  useEffect(() => {
+    if ((phase === 'gameover' || phase === 'win') && session) {
+      try {
+        session.end();
+      } catch (e) {
+        console.error('Error ending VR session on game end:', e);
+      }
+    }
+  }, [phase, session]);
+
   return null;
 }
 

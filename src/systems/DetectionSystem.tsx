@@ -5,7 +5,7 @@ import { DETECTION_CONFIG } from '../constants/gameConfig';
 
 export interface EnemyEntity {
   id: string;
-  type: 'STUDENT' | 'LECTURER' | 'BOSS_WILLY';
+  type: 'STUDENT' | 'LECTURER' | 'BOSS_GATOT' | 'BOSS_WILLY' | 'KOH_WILLY';
   nameLabel?: string;
   position: THREE.Vector3;
   rotation: THREE.Euler;
@@ -137,9 +137,10 @@ export function DetectionSystem() {
           enemy.attackCooldown -= delta;
           if (enemy.attackCooldown <= 0) {
             // Base cooldown & damage per archetype
-            const attackInterval = enemy.type === 'BOSS_WILLY' ? 1.2 : enemy.type === 'LECTURER' ? 1.5 : 1.8;
-            const baseDamage = enemy.type === 'BOSS_WILLY' ? 28 : enemy.type === 'LECTURER' ? 18 : 12;
-            const name = enemy.type === 'BOSS_WILLY' ? 'Boss Willy' : enemy.type === 'LECTURER' ? 'Dosen Zombie' : 'Zombie Student';
+            const isBoss = enemy.type === 'BOSS_GATOT' || enemy.type === 'BOSS_WILLY';
+            const attackInterval = isBoss ? 1.2 : enemy.type === 'LECTURER' || enemy.type === 'KOH_WILLY' ? 1.5 : 1.8;
+            const baseDamage = isBoss ? 28 : enemy.type === 'LECTURER' || enemy.type === 'KOH_WILLY' ? 18 : 12;
+            const name = enemy.nameLabel || (isBoss ? 'Boss Gatot' : enemy.type === 'KOH_WILLY' ? 'Koh Willy' : enemy.type === 'LECTURER' ? 'Dosen Zombie' : 'Zombie Student');
             
             enemy.attackCooldown = attackInterval;
             triggerPlayerDamage(baseDamage, name);

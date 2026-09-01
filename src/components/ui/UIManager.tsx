@@ -21,7 +21,7 @@ const STORY_LINES = [
   'Satu-satunya orang yang punya formula antidot darurat.',
   '',
   '🎯 Misimu: temukan syringe antidot, selamatkan Nusa & para korban,',
-  'dan sembuhkan Boss Willy sebelum semua berakhir.',
+  'dan sembuhkan Boss Gatot sebelum semua berakhir.',
   '',
   '⚠️  Bergeraklah diam-diam. Jangan sampai terdeteksi.',
 ];
@@ -88,13 +88,15 @@ const VR_CONTROLS = [
 // ─── Main UIManager ────────────────────────────────────────────────────────────
 export function UIManager() {
   const [currentMode, setCurrentMode] = useState<'desktop' | 'mobile' | 'vr'>('desktop');
-  const [introTab, setIntroTab] = useState<'story' | 'controls' | 'start'>('story');
+  const [introTab, setIntroTab] = useState<'story' | 'controls' | 'comfort' | 'start'>('story');
   const [hasVR, setHasVR] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const phase = useGameStore((s) => s.phase);
   const setPhase = useGameStore((s) => s.setPhase);
   const reset = useGameStore((s) => s.reset);
+  const accessibility = useGameStore((s) => s.accessibility);
+  const updateAccessibility = useGameStore((s) => s.updateAccessibility);
   const player = useGameStore((s) => s.player);
   const currentRoom = useGameStore((s) => s.currentRoom);
   const threatLevel = useGameStore((s) => s.threatLevel);
@@ -119,17 +121,43 @@ export function UIManager() {
         <div style={introPanelStyle}>
           {/* Header with BINUS Official Logos */}
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
-              <img
-                src="/assets/logo/BU-SIS-YellowDot.png"
-                alt="BINUS SIS Logo"
-                style={{ height: '48px', objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))' }}
-              />
-              <img
-                src="/assets/logo/BU-School-of-Information-System--Satuan.png"
-                alt="School of Information Systems"
-                style={{ height: '48px', objectFit: 'contain', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))' }}
-              />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.96)',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+                  border: '1px solid rgba(255, 255, 255, 0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <img
+                  src="/assets/logo/BU-SIS-YellowDot.png"
+                  alt="BINUS SIS Logo"
+                  style={{ height: '50px', width: 'auto', objectFit: 'contain', display: 'block' }}
+                />
+              </div>
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.96)',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+                  border: '1px solid rgba(255, 255, 255, 0.9)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <img
+                  src="/assets/logo/BU-School-of-Information-System--Satuan.png"
+                  alt="School of Information Systems"
+                  style={{ height: '50px', width: 'auto', objectFit: 'contain', display: 'block' }}
+                />
+              </div>
             </div>
             <div style={{ fontSize: '0.85rem', letterSpacing: '4px', color: '#f87171', marginBottom: '6px', textTransform: 'uppercase' }}>
               BINUS University Bekasi • WebXR Survival
@@ -142,7 +170,7 @@ export function UIManager() {
 
           {/* Tab bar */}
           <div style={tabBarStyle}>
-            {([['story', '📖 Cerita'], ['controls', '🎮 Kontrol'], ['start', '🚀 Mulai']] as const).map(([tab, label]) => (
+            {([['story', '📖 Cerita'], ['controls', '🎮 Kontrol'], ['comfort', '⚙️ VR Comfort'], ['start', '🚀 Mulai']] as const).map(([tab, label]) => (
               <button key={tab} onClick={() => setIntroTab(tab)} style={introTab === tab ? tabActiveBtnStyle : tabBtnStyle}>
                 {label}
               </button>
@@ -153,6 +181,7 @@ export function UIManager() {
           <div style={tabContentStyle}>
             {introTab === 'story' && <StoryTab />}
             {introTab === 'controls' && <ControlsTab isTouchDevice={isTouchDevice} hasVR={hasVR} />}
+            {introTab === 'comfort' && <ComfortTab accessibility={accessibility} updateAccessibility={updateAccessibility} />}
             {introTab === 'start' && (
               <StartTab
                 onStart={() => {
@@ -170,11 +199,11 @@ export function UIManager() {
             <div style={{ textAlign: 'center', marginTop: '16px' }}>
               <button
                 onClick={() =>
-                  setIntroTab(introTab === 'story' ? 'controls' : 'start')
+                  setIntroTab(introTab === 'story' ? 'controls' : introTab === 'controls' ? 'comfort' : 'start')
                 }
                 style={nextBtnStyle}
               >
-                {introTab === 'story' ? 'Lihat Kontrol →' : 'Siap Bermain →'}
+                {introTab === 'story' ? 'Lihat Kontrol →' : introTab === 'controls' ? 'Pengaturan Comfort VR →' : 'Siap Bermain →'}
               </button>
             </div>
           )}
@@ -230,7 +259,7 @@ export function UIManager() {
   const threatText = ['🟢 Aman', '🟡 Waspada', '🟠 Dikejar', '🔴 Diserang'];
   const antidoteItem = player.inventory.find((i) => i.type === 'antidote');
   const syringeCount = antidoteItem ? antidoteItem.count : 0;
-  const dosenCuredCount = (cure.indiCured ? 1 : 0) + (cure.gatotCured ? 1 : 0);
+  const dosenCuredCount = (cure.indiCured ? 1 : 0) + (cure.willyCured ? 1 : 0);
 
   const activeInj = getActiveInjectionInfo();
   const flashRatio = getDamageFlashRatio();
@@ -268,12 +297,14 @@ export function UIManager() {
             {threatText[threatLevel]}
           </div>
           <div style={{ display: 'flex', gap: '8px', marginTop: '4px', fontSize: '0.72rem', flexWrap: 'wrap' }}>
-            <span style={{ color: '#38bdf8', fontWeight: 700 }}>💉 {syringeCount} Antidot</span>
+            <span style={{ color: syringeCount === 0 ? '#f87171' : '#38bdf8', fontWeight: 700 }}>
+              💉 {syringeCount} Antidot {syringeCount === 0 ? '⚠️' : ''}
+            </span>
             <span style={{ color: nusaState.isRescued ? '#4ade80' : '#f87171' }}>
               👤 Nusa {nusaState.isRescued ? '✓' : '✗'}
             </span>
-            <span style={{ color: cure.willyCured ? '#4ade80' : '#f87171' }}>
-              🎯 Willy {cure.willyCured ? '✓' : '✗'}
+            <span style={{ color: cure.gatotCured ? '#4ade80' : '#f87171' }}>
+              🎯 Gatot {cure.gatotCured ? '✓' : '✗'}
             </span>
             <span style={{ color: dosenCuredCount >= 2 ? '#4ade80' : '#fbbf24' }}>
               🏫 Dosen {dosenCuredCount}/2
@@ -281,7 +312,7 @@ export function UIManager() {
           </div>
         </div>
 
-        {/* Center-top: Detection toast or Injection progress gauge */}
+        {/* Center-top: Detection toast, Empty Antidote Banner, or Injection progress gauge */}
         {activeInj ? (
           <div style={injectionGaugeStyle}>
             <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8', marginBottom: '4px' }}>
@@ -290,6 +321,10 @@ export function UIManager() {
             <div style={barBgStyle}>
               <div style={{ ...barFillStyle, width: `${activeInj.progressPercent}%`, backgroundColor: '#38bdf8' }} />
             </div>
+          </div>
+        ) : syringeCount === 0 ? (
+          <div style={{ ...toastStyle, background: 'rgba(185, 28, 28, 0.9)', border: '1px solid #ef4444', color: '#ffffff' }}>
+            ⚠️ Antidot Habis! Ambil di Refill Station Ruang Dosen (Lantai 1)
           </div>
         ) : detectionMsg ? (
           <div style={toastStyle}>{detectionMsg}</div>
@@ -376,6 +411,186 @@ function ControlsTab({ isTouchDevice, hasVR: _hasVR }: { isTouchDevice: boolean;
   );
 }
 
+// ─── Comfort & Accessibility Tab ──────────────────────────────────────────────
+function ComfortTab({
+  accessibility,
+  updateAccessibility
+}: {
+  accessibility: any;
+  updateAccessibility: (s: any) => void;
+}) {
+  return (
+    <div style={{ display: 'grid', gap: '12px', fontSize: '0.88rem', color: '#e2e8f0' }}>
+      {/* Turn Mode */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ fontWeight: 700, color: '#c084fc', marginBottom: '4px' }}>🔄 Mode Putaran VR (Turn Mode)</div>
+        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '8px' }}>
+          Gunakan Snap Turn untuk mencegah rasa pusing / motion sickness di VR.
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[
+            { label: 'Snap 45° (Rekomendasi)', mode: 'snap', angle: 45 },
+            { label: 'Snap 30°', mode: 'snap', angle: 30 },
+            { label: 'Smooth Turn', mode: 'smooth', angle: 45 }
+          ].map((opt, i) => {
+            const isSelected = accessibility.turnMode === opt.mode && (opt.mode === 'smooth' || accessibility.snapTurnAngle === opt.angle);
+            return (
+              <button
+                key={i}
+                onClick={() => updateAccessibility({ turnMode: opt.mode, snapTurnAngle: opt.angle })}
+                style={{
+                  flex: 1,
+                  padding: '7px 10px',
+                  borderRadius: '6px',
+                  border: isSelected ? '1px solid #a855f7' : '1px solid #334155',
+                  background: isSelected ? '#7c3aed' : '#1e293b',
+                  color: '#ffffff',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Comfort Vignette */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ fontWeight: 700, color: '#38bdf8', marginBottom: '4px' }}>🛡️ Comfort Vignette (Peredam Pusing Gerak)</div>
+        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '8px' }}>
+          Meredupkan tepi penglihatan secara dinamis saat berjalan/berputar untuk kenyamanan mata.
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {(['high', 'medium', 'low', 'off'] as const).map((lvl) => {
+            const isSelected = accessibility.comfortVignette === lvl;
+            return (
+              <button
+                key={lvl}
+                onClick={() => updateAccessibility({ comfortVignette: lvl })}
+                style={{
+                  flex: 1,
+                  padding: '7px 10px',
+                  borderRadius: '6px',
+                  border: isSelected ? '1px solid #38bdf8' : '1px solid #334155',
+                  background: isSelected ? '#0284c7' : '#1e293b',
+                  color: '#ffffff',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {lvl.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* VR Height Calibration */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <div style={{ fontWeight: 700, color: '#fde047' }}>🧍 Kalibrasi Tinggi Pandangan VR (Anti-Jongkok)</div>
+          <span style={{ fontSize: '0.8rem', color: '#fde047', fontWeight: 700 }}>
+            +{Math.round((accessibility.vrHeightOffset ?? 0.25) * 100)} cm
+          </span>
+        </div>
+        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '8px' }}>
+          Menaikkan posisi mata pemain di VR agar sejajar dengan eye-level normal (~1.65m) dan tidak terasa jongkok.
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => updateAccessibility({ vrHeightOffset: 0.45 })}
+            style={{
+              flex: 1,
+              padding: '7px 8px',
+              borderRadius: '6px',
+              border: accessibility.vrHeightOffset === 0.45 ? '1px solid #eab308' : '1px solid #334155',
+              background: accessibility.vrHeightOffset === 0.45 ? '#ca8a04' : '#1e293b',
+              color: '#ffffff',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            🪑 Mode Duduk (+45cm)
+          </button>
+          <button
+            onClick={() => updateAccessibility({ vrHeightOffset: 0.25 })}
+            style={{
+              flex: 1,
+              padding: '7px 8px',
+              borderRadius: '6px',
+              border: accessibility.vrHeightOffset === 0.25 ? '1px solid #eab308' : '1px solid #334155',
+              background: accessibility.vrHeightOffset === 0.25 ? '#ca8a04' : '#1e293b',
+              color: '#ffffff',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            🧍 Berdiri (+25cm)
+          </button>
+          <button
+            onClick={() => updateAccessibility({ vrHeightOffset: 0.0 })}
+            style={{
+              flex: 1,
+              padding: '7px 8px',
+              borderRadius: '6px',
+              border: accessibility.vrHeightOffset === 0.0 ? '1px solid #eab308' : '1px solid #334155',
+              background: accessibility.vrHeightOffset === 0.0 ? '#ca8a04' : '#1e293b',
+              color: '#ffffff',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            Reset (0cm)
+          </button>
+        </div>
+      </div>
+
+      {/* VR HUD Placement Position */}
+      <div style={{ background: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ fontWeight: 700, color: '#38bdf8', marginBottom: '4px' }}>📍 Posisi Panel VR HUD</div>
+        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '8px' }}>
+          Atur posisi melayang panel VR HUD agar nyaman dibaca dan tidak menghalangi pandangan.
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[
+            { label: '📍 Bawah (Rekomendasi Nyaman)', val: 'bottom' },
+            { label: '📍 Tengah (Eye-Level)', val: 'center' },
+            { label: '📍 Atas', val: 'top' },
+          ].map((p) => {
+            const isSelected = (accessibility.hudPosition || 'bottom') === p.val;
+            return (
+              <button
+                key={p.val}
+                onClick={() => updateAccessibility({ hudPosition: p.val as any })}
+                style={{
+                  flex: 1,
+                  padding: '7px 8px',
+                  borderRadius: '6px',
+                  border: isSelected ? '1px solid #38bdf8' : '1px solid #334155',
+                  background: isSelected ? '#0284c7' : '#1e293b',
+                  color: '#ffffff',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Start Tab ─────────────────────────────────────────────────────────────────
 function StartTab({ onStart, hasVR, isTouchDevice }: { onStart: () => void; hasVR: boolean; isTouchDevice: boolean }) {
   return (
@@ -387,7 +602,7 @@ function StartTab({ onStart, hasVR, isTouchDevice }: { onStart: () => void; hasV
           ['💉', 'Temukan Antidot Syringe di Lobby'],
           ['🧟', 'Sembuhkan zombie di setiap ruangan'],
           ['👤', 'Selamatkan Nusa di Kelas 2A'],
-          ['🎯', 'Sembuhkan Boss Willy di Ruang Direktur'],
+          ['🎯', 'Sembuhkan Boss Gatot di Ruang Direktur'],
           ['🏃', 'Bawa Nusa ke gerbang utama'],
         ].map(([icon, txt], i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '7px', fontSize: '0.87rem', color: '#e2e8f0' }}>

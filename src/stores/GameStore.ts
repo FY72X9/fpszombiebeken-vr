@@ -56,9 +56,21 @@ export interface CureState {
   curedZombieIds: string[];
 }
 
+export interface AccessibilitySettings {
+  turnMode: 'snap' | 'smooth';
+  snapTurnAngle: number; // 30, 45, 90
+  comfortVignette: 'off' | 'low' | 'medium' | 'high';
+  vrHeightOffset: number; // e.g. 0.25 (meter) to eliminate squatting
+  vrSpeedMode: 'normal' | 'comfort';
+  hudPosition: 'bottom' | 'center' | 'top'; // default 'bottom'
+}
+
 export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'debug';
 
 interface GameStoreState {
+  // Accessibility & VR Comfort
+  accessibility: AccessibilitySettings;
+
   // Phase/State
   phase: GamePhase;
   currentRoom: string;
@@ -142,6 +154,7 @@ interface GameStoreState {
   playerInitialized: boolean;
   
   // Actions
+  updateAccessibility: (settings: Partial<AccessibilitySettings>) => void;
   setPhase: (p: GamePhase) => void;
   setRoom: (id: string, spawnPos?: Vector3Tuple, facingY?: number) => void;
   setPlayerPosition: (p: Vector3Tuple) => void;
@@ -175,6 +188,31 @@ interface GameStoreState {
   setDebugFlag: (k: keyof GameStoreState['debug'], v: any) => void;
   tick: () => void;
 }
+
+const initialAccessibilitySettings: AccessibilitySettings = (() => {
+  try {
+    const saved = localStorage.getItem('fpszombiebeken-accessibility');
+    if (saved) {
+      return {
+        turnMode: 'snap',
+        snapTurnAngle: 45,
+        comfortVignette: 'medium',
+        vrHeightOffset: 0.25,
+        vrSpeedMode: 'normal',
+        hudPosition: 'bottom',
+        ...JSON.parse(saved)
+      };
+    }
+  } catch (e) { }
+  return {
+    turnMode: 'snap',
+    snapTurnAngle: 45,
+    comfortVignette: 'medium',
+    vrHeightOffset: 0.25,
+    vrSpeedMode: 'normal',
+    hudPosition: 'bottom',
+  };
+})();
 
 const initialPlayerState: PlayerState = {
   position: [0, 1.6, 2.0],  // lobby_l1 safe interior spawn
@@ -236,6 +274,7 @@ const initialInputState = {
 };
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
+  accessibility: initialAccessibilitySettings,
   phase: 'menu',
   currentRoom: 'lobby_l1',
   saveData: initialSaveData,
@@ -290,6 +329,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   
   playerInitialized: false,
   
+  updateAccessibility: (settings) => set((s) => {
+    const updated = { ...s.accessibility, ...settings };
+    try {
+      localStorage.setItem('fpszombiebeken-accessibility', JSON.stringify(updated));
+    } catch (e) { }
+    return { accessibility: updated };
+  }),
   setPhase: (p) => set({ phase: p }),
   setRoom: (id, spawnPos, facingY) => {
     const rawSpawn = ROOM_SPAWN_POINTS[id] || [0, 1.6, 2.0, 0];
@@ -369,6 +415,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
     // Initialize Bina's starter items based on core game design with fresh object copies
     const initialState = {
+      accessibility: get().accessibility,
       phase: 'menu' as GamePhase,
       currentRoom: 'lobby_l1',
       player: {

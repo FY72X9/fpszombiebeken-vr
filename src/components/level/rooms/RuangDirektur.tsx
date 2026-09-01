@@ -23,8 +23,16 @@ export function RuangDirektur() {
           <boxGeometry args={[8.0, 3.4, 0.1]} />
           <meshStandardMaterial color="#451a03" roughness={0.4} metalness={0.1} />
         </mesh>
-        {/* Official BINUS School of Information System Satuan Logo */}
-        <BinusLogoSign position={[0, 1.1, 0.08]} scale={[3.2, 0.85, 1]} logoPath="/assets/logo/BU-School-of-Information-System--Satuan.png" />
+        {/* Official BINUS School of Information System Executive Plaque */}
+        <BinusLogoSign
+          position={[0, 1.0, 0.08]}
+          height={1.25}
+          showFrame={true}
+          showTextBanner={true}
+          title="DIRECTORATE"
+          subtitle="School of Information Systems • BINUS"
+          logoPath="/assets/logo/BU-School-of-Information-System--Satuan.png"
+        />
         {/* Vertical panel dividers */}
         {[-3, -1, 1, 3].map((x, i) => (
           <mesh key={i} position={[x, 0, 0.06]}>
@@ -99,8 +107,8 @@ export function RuangDirektur() {
         <mesh position={[0, 0, -1.02]}><boxGeometry args={[0.08, 1.25, 0.08]} /><meshStandardMaterial color="#451a03" /></mesh>
       </group>
 
-      {/* ── Boss Willy Zombie ── */}
-      <Zombie id="zombie_boss_willy" type="BOSS_WILLY" initialPosition={[0, 0, -1]} room="ruang_direktur" nameLabel="Boss Willy" />
+      {/* ── Boss Gatot Zombie (Direktur Kampus) ── */}
+      <Zombie id="zombie_boss_gatot" type="BOSS_GATOT" initialPosition={[0, 0, -1]} room="ruang_direktur" nameLabel="Boss Gatot" />
 
       {/* ── Exit Door (West Wall z=3) ── */}
       <Door position={[-5.9, 0, 3]} rotationY={Math.PI / 2} targetRoom="lobby_l1" label="Lobby Lt 1" />

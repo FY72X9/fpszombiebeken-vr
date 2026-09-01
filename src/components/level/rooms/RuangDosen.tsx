@@ -96,9 +96,9 @@ export function RuangDosen() {
       {/* ── Syringe Refill Station ── */}
       <SyringeRefillStation position={[5.0, 0, -3.5]} />
 
-      {/* ── Lecturer Zombie NPCs ── */}
+      {/* ── Lecturer Zombie NPCs (Dosen Indi & Koh Willy) ── */}
       <Zombie id="zombie_dosen_indi" type="LECTURER" initialPosition={[-3, 0, -0.5]} room="ruang_dosen" nameLabel="Dosen Indi" />
-      <Zombie id="zombie_dosen_gatot" type="LECTURER" initialPosition={[3, 0, -0.5]} room="ruang_dosen" nameLabel="Dosen Gatot" />
+      <Zombie id="zombie_dosen_willy" type="KOH_WILLY" initialPosition={[3, 0, -0.5]} room="ruang_dosen" nameLabel="Koh Willy" />
 
       {/* ── Exit Door (East Wall z=3) ── */}
       <Door position={[5.9, 0, 3]} rotationY={-Math.PI / 2} targetRoom="lobby_l1" label="Lobby Lt 1" />

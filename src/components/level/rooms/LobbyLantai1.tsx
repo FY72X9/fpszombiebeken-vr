@@ -20,30 +20,28 @@ export function LobbyLantai1() {
         accentColor="#1e3a5f"
         lightColor="#fffde7"
       >
-        {/* ── BINUS Bekasi Signage Banner (North Wall) ── */}
-        <group position={[0, 2.6, -7.8]}>
-          {/* Dark backing panel */}
-          <mesh>
-            <boxGeometry args={[7, 1.1, 0.08]} />
-            <meshStandardMaterial color="#0f172a" />
-          </mesh>
-          {/* Red accent stripe */}
-          <mesh position={[0, 0.58, 0.04]}>
-            <boxGeometry args={[7, 0.06, 0.02]} />
-            <meshBasicMaterial color="#ef4444" />
-          </mesh>
-          {/* Official BINUS SIS YellowDot Logo */}
-          <BinusLogoSign position={[0, 0, 0.05]} scale={[4.2, 0.95, 1]} logoPath="/assets/logo/BU-SIS-YellowDot.png" />
-        </group>
+        {/* ── BINUS Bekasi Reception Signage Plaque (North Wall) ── */}
+        <BinusLogoSign
+          position={[0, 2.6, -7.85]}
+          height={1.35}
+          showFrame={true}
+          showTextBanner={true}
+          title="BINUS UNIVERSITY"
+          subtitle="School of Information Systems • Bekasi Campus"
+          logoPath="/assets/logo/BU-SIS-YellowDot.png"
+        />
 
-        {/* ── BINUS School of Information System Satuan Logo (West Wall) ── */}
-        <group position={[-7.75, 2.4, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <mesh>
-            <boxGeometry args={[3.2, 1.1, 0.04]} />
-            <meshStandardMaterial color="#ffffff" />
-          </mesh>
-          <BinusLogoSign position={[0, 0, 0.03]} scale={[2.8, 0.9, 1]} logoPath="/assets/logo/BU-School-of-Information-System--Satuan.png" />
-        </group>
+        {/* ── BINUS School of Information System Plaque (West Wall) ── */}
+        <BinusLogoSign
+          position={[-7.85, 2.4, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          height={1.3}
+          showFrame={true}
+          showTextBanner={true}
+          title="SCHOOL OF IS"
+          subtitle="Empowering Society • BINUS Bekasi"
+          logoPath="/assets/logo/BU-School-of-Information-System--Satuan.png"
+        />
 
         {/* ── Info Desk ── */}
         <group position={[0, 0, -3]}>
@@ -69,28 +67,53 @@ export function LobbyLantai1() {
         {/* ── AC Unit ── */}
         <ACUnit position={[0, 2.9, -7.8]} />
 
-        {/* ── East Wall: Large Windows ── */}
-        {[-3.5, 0, 3.5].map((z, i) => (
-          <group key={`ewin${i}`} position={[7.85, 1.8, z]}>
+        {/* ── East Wall: Single Centered Window between Doors (z=0) ── */}
+        <group position={[7.85, 1.8, 0]}>
+          <mesh>
+            <boxGeometry args={[0.05, 1.4, 2.0]} />
+            <meshStandardMaterial color="#bfdbfe" transparent opacity={0.55} emissive="#93c5fd" emissiveIntensity={0.15} />
+          </mesh>
+          {/* Window frame */}
+          <mesh position={[0, 0, 1.0]}>
+            <boxGeometry args={[0.08, 1.45, 0.08]} />
+            <meshStandardMaterial color="#475569" />
+          </mesh>
+          <mesh position={[0, 0, -1.0]}>
+            <boxGeometry args={[0.08, 1.45, 0.08]} />
+            <meshStandardMaterial color="#475569" />
+          </mesh>
+          <mesh position={[0, 0.72, 0]}>
+            <boxGeometry args={[0.08, 0.08, 2.0]} />
+            <meshStandardMaterial color="#475569" />
+          </mesh>
+          <mesh position={[0, -0.72, 0]}>
+            <boxGeometry args={[0.08, 0.08, 2.0]} />
+            <meshStandardMaterial color="#475569" />
+          </mesh>
+        </group>
+
+        {/* ── South Wall: Campus Facade Windows Flanking Main Entrance ── */}
+        {[-4.5, 4.5].map((x, i) => (
+          <group key={`swin${i}`} position={[x, 1.8, 7.85]}>
             <mesh>
-              <boxGeometry args={[0.05, 1.4, 1.8]} />
+              <boxGeometry args={[2.2, 1.4, 0.05]} />
               <meshStandardMaterial color="#bfdbfe" transparent opacity={0.55} emissive="#93c5fd" emissiveIntensity={0.15} />
             </mesh>
             {/* Window frame */}
-            <mesh position={[0, 0, 0.9]}>
+            <mesh position={[1.1, 0, 0]}>
               <boxGeometry args={[0.08, 1.45, 0.08]} />
               <meshStandardMaterial color="#475569" />
             </mesh>
-            <mesh position={[0, 0, -0.9]}>
+            <mesh position={[-1.1, 0, 0]}>
               <boxGeometry args={[0.08, 1.45, 0.08]} />
               <meshStandardMaterial color="#475569" />
             </mesh>
             <mesh position={[0, 0.72, 0]}>
-              <boxGeometry args={[0.08, 0.08, 1.8]} />
+              <boxGeometry args={[2.2, 0.08, 0.08]} />
               <meshStandardMaterial color="#475569" />
             </mesh>
             <mesh position={[0, -0.72, 0]}>
-              <boxGeometry args={[0.08, 0.08, 1.8]} />
+              <boxGeometry args={[2.2, 0.08, 0.08]} />
               <meshStandardMaterial color="#475569" />
             </mesh>
           </group>

@@ -6,6 +6,8 @@ import { activeEnemiesMap, EnemyEntity } from '../../systems/DetectionSystem';
 import { startInjection } from '../../systems/InjectionSystem';
 import { registeredDoorsMap, setTriggerGlobalInteraction, InteractiveTarget } from '../../systems/InteractionManager';
 
+export let currentTargetedZombieId: string | null = null;
+
 export function InteractionSystem() {
   const [promptText, setPromptText] = useState<string | null>(null);
   const playerPos = useGameStore((s) => s.player.position);
@@ -41,7 +43,7 @@ export function InteractionSystem() {
     });
 
     let nearestZombie: EnemyEntity | null = null;
-    let minZombieDist = 2.5;
+    let minZombieDist = 3.5;
 
     activeEnemiesMap.forEach((enemy) => {
       if (enemy.room === currentRoom && enemy.state !== 'cured') {
@@ -51,7 +53,7 @@ export function InteractionSystem() {
           const dirToZombie = new THREE.Vector3().subVectors(enemyPos, pPos);
           if (dirToZombie.lengthSq() > 0.0001) {
             dirToZombie.normalize();
-            if (cameraDir.dot(dirToZombie) > 0.3) {
+            if (cameraDir.dot(dirToZombie) > 0.25) {
               minZombieDist = dist;
               nearestZombie = enemy;
             }
@@ -60,21 +62,31 @@ export function InteractionSystem() {
       }
     });
 
-    if (nearestZombie && minZombieDist <= 2.5 && minZombieDist < minDoorDist) {
-      const zombieName = (nearestZombie as EnemyEntity).nameLabel || ((nearestZombie as EnemyEntity).type === 'BOSS_WILLY' ? 'Boss Willy' : (nearestZombie as EnemyEntity).type === 'LECTURER' ? 'Dosen' : 'Mahasiswa Zombie');
-      setPromptText(`[E / Klik Kiri / VR Trigger] Suntik Antidot: ${zombieName}`);
+    if (nearestZombie && minZombieDist <= 3.5 && minZombieDist < minDoorDist) {
+      const targetZombie = nearestZombie as EnemyEntity;
+      currentTargetedZombieId = targetZombie.id;
+      const isBoss = targetZombie.type === 'BOSS_GATOT' || targetZombie.type === 'BOSS_WILLY';
+      const zombieName = targetZombie.nameLabel || (isBoss ? 'Boss Gatot' : targetZombie.type === 'KOH_WILLY' ? 'Koh Willy' : targetZombie.type === 'LECTURER' ? 'Dosen' : 'Mahasiswa Zombie');
+      
+      const hasAntidote = useGameStore.getState().player.inventory.some((i) => i.type === 'antidote' && i.count > 0);
+      if (hasAntidote) {
+        setPromptText(`[E / Klik Kiri / VR Trigger] Suntik Antidot: ${zombieName}`);
+      } else {
+        setPromptText(`⚠️ ANTIDOT HABIS! Isi ulang di Ruang Dosen!`);
+      }
 
-      const targetZombieId = (nearestZombie as EnemyEntity).id;
+      const targetZombieId = targetZombie.id;
       setTriggerGlobalInteraction(() => {
-        const hasAntidote = useGameStore.getState().player.inventory.some((i) => i.type === 'antidote' && i.count > 0);
-        if (hasAntidote) {
+        const hasAntidoteNow = useGameStore.getState().player.inventory.some((i) => i.type === 'antidote' && i.count > 0);
+        if (hasAntidoteNow) {
           startInjection(targetZombieId);
         } else {
-          setDetectionMessage('Membutuhkan Antidot Syringe!');
-          setTimeout(() => setDetectionMessage(null), 2000);
+          setDetectionMessage('⚠️ Antidot habis! Isi ulang di Ruang Dosen (Lantai 1)!');
+          setTimeout(() => setDetectionMessage(null), 3000);
         }
       });
     } else if (nearestDoor) {
+      currentTargetedZombieId = null;
       const label = (nearestDoor as InteractiveTarget).label;
       const action = (nearestDoor as InteractiveTarget).action;
 
@@ -85,6 +97,7 @@ export function InteractionSystem() {
         setTimeout(() => setDetectionMessage(null), 2000);
       });
     } else {
+      currentTargetedZombieId = null;
       if (promptText !== null) setPromptText(null);
       setTriggerGlobalInteraction(() => {});
     }

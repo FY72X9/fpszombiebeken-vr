@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { useXR, XROrigin } from '@react-three/xr';
 import { PointerLockControls } from '@react-three/drei';
@@ -8,6 +8,7 @@ import { PLAYER_CONFIG } from '../../constants/gameConfig';
 import { emitNoise } from '../../systems/NoiseSystem';
 import { triggerGlobalInteraction } from '../../systems/InteractionManager';
 import { resolvePlayerCollisions, getStairElevation } from '../../physics/useSimpleCollisions';
+import { ComfortVignette } from '../xr/ComfortVignette';
 
 export function PlayerController() {
   const { camera, gl } = useThree();
@@ -21,6 +22,9 @@ export function PlayerController() {
 
   // Debouncing ref for VR buttons
   const vrBtnPressedRef = useRef(false);
+  const snapTurnLockRef = useRef(false);
+  const [snapPulseTrigger, setSnapPulseTrigger] = useState(false);
+  const vrMotionIntensityRef = useRef(0);
 
   // Real-time VR position & facing yaw refs
   const vrPos = useRef(new THREE.Vector3(0, 1.6, 2.0));
@@ -48,15 +52,19 @@ export function PlayerController() {
       lastRoomRef.current = currentRoom;
       lastPhaseRef.current = phase;
 
-      const statePlayer = useGameStore.getState().player;
-      const [px, py, pz] = statePlayer.position;
-      const [, ry] = statePlayer.rotation;
+      const storeState = useGameStore.getState();
+      const [px, py, pz] = storeState.player.position;
+      const [, ry] = storeState.player.rotation;
 
-      vrPos.current.set(px, 0, pz);
+      vrPos.current.set(px, py, pz);
       vrYaw.current = ry;
 
+      const stairY = getStairElevation(vrPos.current, currentRoom);
+      const heightOffset = storeState.accessibility.vrHeightOffset ?? 0.25;
+      const totalRigY = stairY + heightOffset;
+
       if (playerRigRef.current) {
-        playerRigRef.current.position.set(px, 0, pz);
+        playerRigRef.current.position.set(px, totalRigY, pz);
         playerRigRef.current.rotation.set(0, ry, 0);
       }
 
@@ -149,11 +157,15 @@ export function PlayerController() {
       const [px, py, pz] = state.player.position;
       const [, ry] = state.player.rotation;
 
-      vrPos.current.set(px, 0, pz);
+      vrPos.current.set(px, py, pz);
       vrYaw.current = ry;
 
+      const stairY = getStairElevation(vrPos.current, state.currentRoom);
+      const heightOffset = state.accessibility.vrHeightOffset ?? 0.25;
+      const totalRigY = stairY + heightOffset;
+
       if (playerRigRef.current) {
-        playerRigRef.current.position.set(px, 0, pz);
+        playerRigRef.current.position.set(px, totalRigY, pz);
         playerRigRef.current.rotation.set(0, ry, 0);
       }
 
@@ -166,6 +178,9 @@ export function PlayerController() {
     }
 
     if (isPresenting && session) {
+      let isMovingInVR = false;
+      let vrSpeed = 0;
+
       // ── WebXR VR Controller Direct Locomotion & Interaction Handler ──
       for (const source of session.inputSources) {
         if (!source.gamepad) continue;
@@ -184,7 +199,7 @@ export function PlayerController() {
         }
 
         if (source.handedness === 'left') {
-          // Left Controller Joystick: Smooth Locomotion (Forward/Backward/Strafe)
+          // Left Controller Joystick: Locomotion (Forward/Backward/Strafe)
           if (Math.abs(stickX) > 0.12 || Math.abs(stickY) > 0.12) {
             camera.getWorldDirection(forwardVec.current);
             forwardVec.current.y = 0;
@@ -198,7 +213,11 @@ export function PlayerController() {
 
             if (moveDirVec.current.lengthSq() > 0.0001) {
               moveDirVec.current.normalize();
-              const speed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : PLAYER_CONFIG.moveSpeed.walk;
+              const baseMoveSpeed = state.accessibility.vrSpeedMode === 'comfort' ? 3.0 : PLAYER_CONFIG.moveSpeed.walk;
+              const speed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : baseMoveSpeed;
+              vrSpeed = speed;
+              isMovingInVR = true;
+
               vrPos.current.x += moveDirVec.current.x * speed * delta;
               vrPos.current.z += moveDirVec.current.z * speed * delta;
 
@@ -206,10 +225,30 @@ export function PlayerController() {
             }
           }
         } else if (source.handedness === 'right') {
-          // Right Controller Joystick: Smooth Eye-View Rotation
-          if (Math.abs(stickX) > 0.12) {
-            const turnSpeed = 1.8 * delta;
-            vrYaw.current -= stickX * turnSpeed;
+          // Right Controller Joystick: Snap Turning (Comfort Default) or Smooth Turning
+          const turnMode = state.accessibility.turnMode ?? 'snap';
+          const snapAngleDeg = state.accessibility.snapTurnAngle || 45;
+          const snapAngleRad = (snapAngleDeg * Math.PI) / 180;
+
+          if (turnMode === 'snap') {
+            if (Math.abs(stickX) > 0.55) {
+              if (!snapTurnLockRef.current) {
+                snapTurnLockRef.current = true;
+                const dir = stickX > 0 ? -1 : 1;
+                vrYaw.current += dir * snapAngleRad;
+                setSnapPulseTrigger(true);
+                setTimeout(() => setSnapPulseTrigger(false), 200);
+              }
+            } else if (Math.abs(stickX) < 0.2) {
+              snapTurnLockRef.current = false;
+            }
+          } else {
+            // Smooth turning
+            if (Math.abs(stickX) > 0.12) {
+              const turnSpeed = 1.8 * delta;
+              vrYaw.current -= stickX * turnSpeed;
+              vrMotionIntensityRef.current = Math.min(1, Math.abs(stickX) * 0.8);
+            }
           }
         }
 
@@ -225,9 +264,29 @@ export function PlayerController() {
         }
       }
 
+      // Calculate motion intensity for comfort vignette
+      if (isMovingInVR) {
+        vrMotionIntensityRef.current = THREE.MathUtils.lerp(
+          vrMotionIntensityRef.current,
+          Math.min(1, vrSpeed / 5.0),
+          Math.min(1, delta * 10)
+        );
+      } else {
+        vrMotionIntensityRef.current = THREE.MathUtils.lerp(
+          vrMotionIntensityRef.current,
+          0,
+          Math.min(1, delta * 6)
+        );
+      }
+
+      // Stair Elevation & Height Offset in VR
+      const stairY = getStairElevation(vrPos.current, state.currentRoom);
+      const heightOffset = state.accessibility.vrHeightOffset ?? 0.25;
+      const totalRigY = stairY + heightOffset;
+
       // Update Rig transform
       if (playerRigRef.current) {
-        playerRigRef.current.position.set(vrPos.current.x, 0, vrPos.current.z);
+        playerRigRef.current.position.set(vrPos.current.x, totalRigY, vrPos.current.z);
         playerRigRef.current.rotation.set(0, vrYaw.current, 0);
       }
 
@@ -235,7 +294,7 @@ export function PlayerController() {
       useGameStore.setState((s) => ({
         player: {
           ...s.player,
-          position: [vrPos.current.x, 1.6, vrPos.current.z],
+          position: [vrPos.current.x, totalRigY + 1.6, vrPos.current.z],
           rotation: [camera.rotation.x, vrYaw.current, camera.rotation.z]
         }
       }));
@@ -334,6 +393,7 @@ export function PlayerController() {
   return (
     <group ref={playerRigRef}>
       <XROrigin position={[0, 0, 0]} />
+      <ComfortVignette motionIntensity={vrMotionIntensityRef.current} snapPulse={snapPulseTrigger} />
       {!isPresenting && (
         <PointerLockControls
           ref={controlsRef}
