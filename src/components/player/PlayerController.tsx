@@ -10,6 +10,56 @@ import { triggerGlobalInteraction } from '../../systems/InteractionManager';
 import { resolvePlayerCollisions, getStairElevation } from '../../physics/useSimpleCollisions';
 import { ComfortVignette } from '../xr/ComfortVignette';
 
+// Helper function to extract 360-degree radial analog joystick values
+function getJoystickInput(gp: Gamepad): { x: number; y: number; magnitude: number } {
+  // WebXR standard gamepad specification:
+  // axes[0]: primary stick X (-1 left, +1 right)
+  // axes[1]: primary stick Y (-1 up, +1 down)
+  // axes[2]: secondary stick / touchpad X
+  // axes[3]: secondary stick / touchpad Y
+  const x01 = gp.axes[0] ?? 0;
+  const y01 = gp.axes[1] ?? 0;
+  const mag01 = Math.hypot(x01, y01);
+
+  const x23 = gp.axes[2] ?? 0;
+  const y23 = gp.axes[3] ?? 0;
+  const mag23 = Math.hypot(x23, y23);
+
+  // Pick whichever pair has active intentional input (filter out capacitive / sensor noise below 0.08)
+  let rawX = 0;
+  let rawY = 0;
+  let rawMag = 0;
+
+  if (mag01 >= 0.08 && mag01 >= mag23) {
+    rawX = x01;
+    rawY = y01;
+    rawMag = mag01;
+  } else if (mag23 >= 0.08) {
+    rawX = x23;
+    rawY = y23;
+    rawMag = mag23;
+  }
+
+  // Circular / Radial Deadzone (prevents axis pinching & square deadzone snap)
+  const deadzone = 0.12;
+  if (rawMag <= deadzone) {
+    return { x: 0, y: 0, magnitude: 0 };
+  }
+
+  // Remap magnitude smoothly from [deadzone, 1.0] -> [0.0, 1.0]
+  const remappedMag = Math.min(1.0, (rawMag - deadzone) / (1.0 - deadzone));
+  // Smooth progressive response curve for refined micro-movements
+  const smoothMag = Math.pow(remappedMag, 1.15);
+
+  // Preserve continuous 360-degree angle
+  const angle = Math.atan2(rawY, rawX);
+  return {
+    x: Math.cos(angle) * smoothMag,
+    y: Math.sin(angle) * smoothMag,
+    magnitude: smoothMag
+  };
+}
+
 export function PlayerController() {
   const { camera, gl } = useThree();
   const session = useXR((state) => state.session);
@@ -22,13 +72,18 @@ export function PlayerController() {
 
   // Debouncing ref for VR buttons
   const vrBtnPressedRef = useRef(false);
+  const sprintBtnLockRef = useRef(false);
   const snapTurnLockRef = useRef(false);
   const [snapPulseTrigger, setSnapPulseTrigger] = useState(false);
   const vrMotionIntensityRef = useRef(0);
+  const vrFootstepTimer = useRef(0);
 
-  // Real-time VR position & facing yaw refs
+  // Real-time VR position, facing yaw, and smoothed velocity refs
   const vrPos = useRef(new THREE.Vector3(0, 1.6, 2.0));
   const vrYaw = useRef<number>(Math.PI);
+  const vrVelocity = useRef(new THREE.Vector3(0, 0, 0));
+  const targetVRVelocity = useRef(new THREE.Vector3(0, 0, 0));
+  const targetVRMoveDir = useRef(new THREE.Vector3(0, 0, 0));
 
   const currentRoom = useGameStore((s) => s.currentRoom);
   const phase = useGameStore((s) => s.phase);
@@ -58,6 +113,8 @@ export function PlayerController() {
 
       vrPos.current.set(px, py, pz);
       vrYaw.current = ry;
+      vrVelocity.current.set(0, 0, 0);
+      targetVRVelocity.current.set(0, 0, 0);
 
       const stairY = getStairElevation(vrPos.current, currentRoom);
       const heightOffset = storeState.accessibility.vrHeightOffset ?? 0.25;
@@ -159,6 +216,8 @@ export function PlayerController() {
 
       vrPos.current.set(px, py, pz);
       vrYaw.current = ry;
+      vrVelocity.current.set(0, 0, 0);
+      targetVRVelocity.current.set(0, 0, 0);
 
       const stairY = getStairElevation(vrPos.current, state.currentRoom);
       const heightOffset = state.accessibility.vrHeightOffset ?? 0.25;
@@ -179,50 +238,55 @@ export function PlayerController() {
 
     if (isPresenting && session) {
       let isMovingInVR = false;
-      let vrSpeed = 0;
+      let targetVRSpeed = 0;
+      targetVRMoveDir.current.set(0, 0, 0);
 
       // ── WebXR VR Controller Direct Locomotion & Interaction Handler ──
       for (const source of session.inputSources) {
         if (!source.gamepad) continue;
         const gp = source.gamepad;
 
-        // Check both axis sets: [2,3] and [0,1] for maximum controller compatibility
-        let stickX = 0;
-        let stickY = 0;
-
-        if (Math.abs(gp.axes[2] ?? 0) > 0.1 || Math.abs(gp.axes[3] ?? 0) > 0.1) {
-          stickX = gp.axes[2];
-          stickY = gp.axes[3];
-        } else if (Math.abs(gp.axes[0] ?? 0) > 0.1 || Math.abs(gp.axes[1] ?? 0) > 0.1) {
-          stickX = gp.axes[0];
-          stickY = gp.axes[1];
-        }
+        const stick = getJoystickInput(gp);
 
         if (source.handedness === 'left') {
-          // Left Controller Joystick: Locomotion (Forward/Backward/Strafe)
-          if (Math.abs(stickX) > 0.12 || Math.abs(stickY) > 0.12) {
+          // Left Controller Joystick: Full 360 Omnidirectional Locomotion (Smooth & Analog)
+          if (stick.magnitude > 0.01) {
+            // Get Headset World Orientation projected onto horizontal XZ plane
             camera.getWorldDirection(forwardVec.current);
             forwardVec.current.y = 0;
-            if (forwardVec.current.lengthSq() > 0.0001) forwardVec.current.normalize();
+            if (forwardVec.current.lengthSq() > 0.001) {
+              forwardVec.current.normalize();
+            } else {
+              // Looking straight up or down: derive forward vector from camera yaw quaternion
+              const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+              forwardVec.current.set(-Math.sin(euler.y), 0, -Math.cos(euler.y));
+            }
 
             rightVec.current.crossVectors(forwardVec.current, upVec.current).normalize();
 
-            moveDirVec.current.set(0, 0, 0);
-            moveDirVec.current.addScaledVector(forwardVec.current, -stickY);
-            moveDirVec.current.addScaledVector(rightVec.current, stickX);
+            // Calculate precise 360 movement vector:
+            // In WebXR Gamepad standard: -Y is forward (stick up), +Y is backward (stick down)
+            // +X is strafe right, -X is strafe left
+            targetVRMoveDir.current.addScaledVector(forwardVec.current, -stick.y);
+            targetVRMoveDir.current.addScaledVector(rightVec.current, stick.x);
 
-            if (moveDirVec.current.lengthSq() > 0.0001) {
-              moveDirVec.current.normalize();
-              const baseMoveSpeed = state.accessibility.vrSpeedMode === 'comfort' ? 3.0 : PLAYER_CONFIG.moveSpeed.walk;
-              const speed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : baseMoveSpeed;
-              vrSpeed = speed;
-              isMovingInVR = true;
+            const baseMoveSpeed = state.accessibility.vrSpeedMode === 'comfort' ? 3.2 : PLAYER_CONFIG.moveSpeed.walk;
+            const maxSpeed = state.player.isSprinting ? PLAYER_CONFIG.moveSpeed.sprint : baseMoveSpeed;
 
-              vrPos.current.x += moveDirVec.current.x * speed * delta;
-              vrPos.current.z += moveDirVec.current.z * speed * delta;
+            targetVRSpeed = maxSpeed * stick.magnitude;
+            isMovingInVR = true;
+          }
 
-              resolvePlayerCollisions(vrPos.current, 0.45, state.currentRoom);
+          // Left Stick Click (Button Index 3) -> Toggle / Activate Sprint
+          const stickClick = gp.buttons[3];
+          if (stickClick && (stickClick.pressed || stickClick.value > 0.6)) {
+            if (!sprintBtnLockRef.current) {
+              sprintBtnLockRef.current = true;
+              const isSprinting = useGameStore.getState().player.isSprinting;
+              useGameStore.getState().setPlayerSprint(!isSprinting);
             }
+          } else {
+            sprintBtnLockRef.current = false;
           }
         } else if (source.handedness === 'right') {
           // Right Controller Joystick: Snap Turning (Comfort Default) or Smooth Turning
@@ -231,23 +295,23 @@ export function PlayerController() {
           const snapAngleRad = (snapAngleDeg * Math.PI) / 180;
 
           if (turnMode === 'snap') {
-            if (Math.abs(stickX) > 0.55) {
+            if (Math.abs(stick.x) > 0.55) {
               if (!snapTurnLockRef.current) {
                 snapTurnLockRef.current = true;
-                const dir = stickX > 0 ? -1 : 1;
+                const dir = stick.x > 0 ? -1 : 1;
                 vrYaw.current += dir * snapAngleRad;
                 setSnapPulseTrigger(true);
                 setTimeout(() => setSnapPulseTrigger(false), 200);
               }
-            } else if (Math.abs(stickX) < 0.2) {
+            } else if (Math.abs(stick.x) < 0.2) {
               snapTurnLockRef.current = false;
             }
           } else {
-            // Smooth turning
-            if (Math.abs(stickX) > 0.12) {
-              const turnSpeed = 1.8 * delta;
-              vrYaw.current -= stickX * turnSpeed;
-              vrMotionIntensityRef.current = Math.min(1, Math.abs(stickX) * 0.8);
+            // Smooth turning with progressive acceleration
+            if (Math.abs(stick.x) > 0.08) {
+              const turnSpeed = 2.2 * delta;
+              vrYaw.current -= stick.x * turnSpeed;
+              vrMotionIntensityRef.current = Math.min(1, Math.abs(stick.x) * 0.75);
             }
           }
         }
@@ -264,11 +328,45 @@ export function PlayerController() {
         }
       }
 
+      // Smooth Velocity Interpolation (Damping / Acceleration curve) for silky 360 movement
+      if (isMovingInVR && targetVRMoveDir.current.lengthSq() > 0.0001) {
+        targetVRVelocity.current.copy(targetVRMoveDir.current).normalize().multiplyScalar(targetVRSpeed);
+      } else {
+        targetVRVelocity.current.set(0, 0, 0);
+      }
+
+      // Snappy and responsive acceleration / deceleration lerp
+      const accelFactor = targetVRVelocity.current.lengthSq() > 0 ? 15 : 18;
+      vrVelocity.current.lerp(targetVRVelocity.current, Math.min(1, delta * accelFactor));
+
+      // Apply displacement
+      const currentSpeed = vrVelocity.current.length();
+      if (currentSpeed > 0.005) {
+        vrPos.current.x += vrVelocity.current.x * delta;
+        vrPos.current.z += vrVelocity.current.z * delta;
+
+        resolvePlayerCollisions(vrPos.current, 0.45, state.currentRoom);
+
+        // Footstep audio / noise emit when moving fast
+        if (state.player.isSprinting && currentSpeed > PLAYER_CONFIG.moveSpeed.walk + 0.5) {
+          vrFootstepTimer.current += delta;
+          if (vrFootstepTimer.current > 0.35) {
+            vrFootstepTimer.current = 0;
+            emitNoise({
+              position: [vrPos.current.x, vrPos.current.y, vrPos.current.z],
+              radius: 8,
+              intensity: 3,
+              type: 'footstep'
+            });
+          }
+        }
+      }
+
       // Calculate motion intensity for comfort vignette
-      if (isMovingInVR) {
+      if (currentSpeed > 0.05) {
         vrMotionIntensityRef.current = THREE.MathUtils.lerp(
           vrMotionIntensityRef.current,
-          Math.min(1, vrSpeed / 5.0),
+          Math.min(1, currentSpeed / 5.5),
           Math.min(1, delta * 10)
         );
       } else {

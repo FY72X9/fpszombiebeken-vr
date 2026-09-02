@@ -395,34 +395,50 @@ export function VRHUD() {
             </Text>
             {/* Snap 45 */}
             <group
-              position={[-0.04, 0.05, 0.01]}
+              position={[-0.07, 0.05, 0.01]}
               onClick={(e) => {
                 e.stopPropagation();
                 updateAccessibility({ turnMode: 'snap', snapTurnAngle: 45 });
               }}
             >
               <mesh>
-                <planeGeometry args={[0.13, 0.034]} />
+                <planeGeometry args={[0.09, 0.034]} />
                 <meshBasicMaterial color={accessibility.turnMode === 'snap' && accessibility.snapTurnAngle === 45 ? '#7c3aed' : '#334155'} />
               </mesh>
-              <Text position={[0, 0, 0.01]} fontSize={0.018} color="#ffffff" anchorX="center" anchorY="middle">
+              <Text position={[0, 0, 0.01]} fontSize={0.016} color="#ffffff" anchorX="center" anchorY="middle">
                 Snap 45°
               </Text>
             </group>
             {/* Snap 30 */}
             <group
-              position={[0.10, 0.05, 0.01]}
+              position={[0.035, 0.05, 0.01]}
               onClick={(e) => {
                 e.stopPropagation();
                 updateAccessibility({ turnMode: 'snap', snapTurnAngle: 30 });
               }}
             >
               <mesh>
-                <planeGeometry args={[0.13, 0.034]} />
+                <planeGeometry args={[0.09, 0.034]} />
                 <meshBasicMaterial color={accessibility.turnMode === 'snap' && accessibility.snapTurnAngle === 30 ? '#7c3aed' : '#334155'} />
               </mesh>
-              <Text position={[0, 0, 0.01]} fontSize={0.018} color="#ffffff" anchorX="center" anchorY="middle">
+              <Text position={[0, 0, 0.01]} fontSize={0.016} color="#ffffff" anchorX="center" anchorY="middle">
                 Snap 30°
+              </Text>
+            </group>
+            {/* Smooth Turn */}
+            <group
+              position={[0.14, 0.05, 0.01]}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateAccessibility({ turnMode: 'smooth' });
+              }}
+            >
+              <mesh>
+                <planeGeometry args={[0.09, 0.034]} />
+                <meshBasicMaterial color={accessibility.turnMode === 'smooth' ? '#7c3aed' : '#334155'} />
+              </mesh>
+              <Text position={[0, 0, 0.01]} fontSize={0.016} color="#ffffff" anchorX="center" anchorY="middle">
+                Smooth
               </Text>
             </group>
 
